@@ -12,12 +12,14 @@ import {
 } from 'recharts'
 import { useTheme } from '../context/ThemeContext'
 import { formatWithCommas } from '../utils/dataGenerator'
+import { getChartColors } from '../utils/chartColors'
 
 interface BubbleData {
   region: string
   cagrIndex: number
   marketShareIndex: number
   incrementalOpportunity: number
+  colorIndex?: number
   description?: string
 }
 
@@ -27,12 +29,9 @@ interface BubbleChartProps {
   yAxisLabel?: string
 }
 
-// All bubbles use blue color with 3D effect (matching screenshot)
-const BUBBLE_COLOR = '#0075FF' // Blue color for all bubbles
-
-export function BubbleChart({ 
-  data, 
-  xAxisLabel = 'CAGR Index', 
+export function BubbleChart({
+  data,
+  xAxisLabel = 'CAGR Index',
   yAxisLabel = 'Market Share Index'
 }: BubbleChartProps) {
   const { theme } = useTheme()
@@ -45,6 +44,9 @@ export function BubbleChart({
       </div>
     )
   }
+
+  // Get unique colors for each bubble
+  const bubbleColors = useMemo(() => getChartColors(data.length), [data.length])
 
   // Normalize bubble sizes for visualization
   const maxOpportunity = Math.max(...data.map(d => d.incrementalOpportunity))
@@ -111,19 +113,23 @@ export function BubbleChart({
     return null
   }
 
-  // Custom shape for 3D bubbles - all blue with 3D effect
+  // Custom shape for 3D bubbles - each with unique color
   const CustomShape = (props: any): JSX.Element => {
     const { cx, cy, payload } = props
     const region = payload?.region || 'Unknown'
     const size = payload?.size || 50
-    
+    const colorIndex = payload?.colorIndex ?? 0
+
     // Ensure cx and cy are valid numbers, default to 0 if not
     const x = typeof cx === 'number' ? cx : 0
     const y = typeof cy === 'number' ? cy : 0
-    
+
+    // Get color for this bubble
+    const bubbleColor = bubbleColors[colorIndex % bubbleColors.length]
+
     // Create unique ID for each bubble to avoid gradient conflicts
-    const bubbleId = `bubble-${region.replace(/\s+/g, '-').toLowerCase()}`
-    
+    const bubbleId = `bubble-${region.replace(/\s+/g, '-').toLowerCase()}-${colorIndex}`
+
     return (
       <g>
         {/* Shadow for 3D effect */}
@@ -137,9 +143,9 @@ export function BubbleChart({
         {/* Main bubble with gradient for 3D effect */}
         <defs>
           <radialGradient id={`gradient-${bubbleId}`}>
-            <stop offset="0%" stopColor={BUBBLE_COLOR} stopOpacity={1} />
-            <stop offset="50%" stopColor={BUBBLE_COLOR} stopOpacity={0.9} />
-            <stop offset="100%" stopColor={BUBBLE_COLOR} stopOpacity={0.7} />
+            <stop offset="0%" stopColor={bubbleColor} stopOpacity={1} />
+            <stop offset="50%" stopColor={bubbleColor} stopOpacity={0.9} />
+            <stop offset="100%" stopColor={bubbleColor} stopOpacity={0.7} />
           </radialGradient>
           <filter id={`glow-${bubbleId}`}>
             <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
@@ -155,7 +161,7 @@ export function BubbleChart({
           r={size / 2}
           fill={`url(#gradient-${bubbleId})`}
           filter={`url(#glow-${bubbleId})`}
-          stroke={BUBBLE_COLOR}
+          stroke={bubbleColor}
           strokeWidth={2}
           style={{
             transition: 'all 0.3s ease',
@@ -240,28 +246,51 @@ export function BubbleChart({
             }}
           />
           <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
-          <Scatter 
-            name="Regions" 
-            data={transformedData} 
-            fill={BUBBLE_COLOR}
+          <Scatter
+            name="Items"
+            data={transformedData}
             shape={CustomShape}
           >
-            {transformedData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={BUBBLE_COLOR} />
-            ))}
+            {transformedData.map((entry, index) => {
+              const colorIndex = entry.colorIndex ?? index
+              return (
+                <Cell key={`cell-${index}`} fill={bubbleColors[colorIndex % bubbleColors.length]} />
+              )
+            })}
           </Scatter>
         </RechartsScatterChart>
       </ResponsiveContainer>
 
       {/* Legend */}
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
-        <div className={`px-4 py-2 rounded-lg border ${
-          isDark 
-            ? 'bg-navy-card border-navy-light' 
-            : 'bg-white border-gray-300'
+      <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 z-20 max-w-4xl">
+        <div className={`px-4 py-2 rounded-lg border shadow-md ${
+          isDark
+            ? 'bg-navy-card/95 border-navy-light'
+            : 'bg-white/95 border-gray-300'
         }`}>
-          <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
-            *Size of the bubble indicates incremental opportunity between 2025 and 2032
+          <div className="flex flex-wrap items-center justify-center gap-3 mb-1">
+            {data.map((item, index) => {
+              const colorIndex = item.colorIndex ?? index
+              const color = bubbleColors[colorIndex % bubbleColors.length]
+              return (
+                <div key={index} className="flex items-center gap-1.5">
+                  <div
+                    className="w-3 h-3 rounded-full border"
+                    style={{
+                      backgroundColor: color,
+                      borderColor: color,
+                      boxShadow: `0 0 4px ${color}60`
+                    }}
+                  />
+                  <span className="text-[10px] font-medium text-text-primary-light dark:text-text-primary-dark whitespace-nowrap">
+                    {item.region}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+          <p className="text-[9px] text-center text-text-secondary-light dark:text-text-secondary-dark mt-1 pt-1 border-t border-gray-300 dark:border-navy-light">
+            *Size of bubble indicates incremental opportunity (2025-2032)
           </p>
         </div>
       </div>

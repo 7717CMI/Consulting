@@ -77,11 +77,11 @@ export function YoYCAGRChart({
         </span>
       </div>
 
-      {/* Toggle Button */}
-      <div className="absolute top-4 right-4 z-20">
+      {/* Toggle Button - Hidden for YoY only view */}
+      {/* <div className="absolute top-4 right-4 z-20">
         <div className={`flex items-center gap-2 p-2 rounded-lg border ${
-          isDark 
-            ? 'bg-navy-card border-navy-light' 
+          isDark
+            ? 'bg-navy-card border-navy-light'
             : 'bg-white border-gray-300'
         } shadow-md`}>
           <button
@@ -109,7 +109,7 @@ export function YoYCAGRChart({
             CAGR
           </button>
         </div>
-      </div>
+      </div> */}
 
       <ResponsiveContainer width="100%" height="100%" className="relative z-10">
         <RechartsLineChart
@@ -131,9 +131,9 @@ export function YoYCAGRChart({
             label={{
               value: xAxisLabel,
               position: 'insideBottom',
-              offset: -5,
-              style: { 
-                fontSize: '14px', 
+              offset: -15,
+              style: {
+                fontSize: '14px',
                 fontWeight: 500,
                 fill: isDark ? '#E2E8F0' : '#2D3748'
               }
@@ -173,7 +173,7 @@ export function YoYCAGRChart({
               key={key}
               type="monotone"
               dataKey={key}
-              name={showCAGR ? 'CAGR (%)' : 'YoY Growth (%)'}
+              name={showCAGR ? 'CAGR (%)' : 'Y-o-Y Growth (%)'}
               stroke={colors[index % colors.length]}
               strokeWidth={3}
               dot={{ r: 5 }}

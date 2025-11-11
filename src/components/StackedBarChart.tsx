@@ -154,7 +154,7 @@ export function StackedBarChart({ data, dataKey, nameKey, diseaseKey, uniqueDise
         margin={{
           top: 50,
           right: 40,
-          left: 80,
+          left: 100,
           bottom: 120,
         }}
       >
@@ -190,10 +190,10 @@ export function StackedBarChart({ data, dataKey, nameKey, diseaseKey, uniqueDise
           label={{
             value: yAxisLabel || 'Value',
             angle: -90,
-            position: 'insideLeft',
-            offset: -10,
-            style: { 
-              fontSize: '14px', 
+            position: 'left',
+            offset: 20,
+            style: {
+              fontSize: '11px',
               fontWeight: 500,
               fill: isDark ? '#E2E8F0' : '#2D3748',
               textAnchor: 'middle'

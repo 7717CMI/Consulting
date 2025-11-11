@@ -63,7 +63,7 @@ export function SegmentGroupedBarChart({
       
       // Extract unit from yAxisLabel (e.g., "Market Value (US$ Million)" -> "US$ Million")
       const unitMatch = yAxisLabel.match(/\(([^)]+)\)/)
-      const unit = unitMatch ? unitMatch[1] : yAxisLabel.includes('Units') ? 'Units' : ''
+      const unit = unitMatch ? unitMatch[1] : yAxisLabel.includes('Tons') ? 'Tons' : ''
       
       return (
         <div className={`p-4 rounded-lg border-2 shadow-lg ${
@@ -107,7 +107,7 @@ export function SegmentGroupedBarChart({
         margin={{
           top: 50,
           right: 40,
-          left: 80,
+          left: 100,
           bottom: 80,
         }}
         barGap={0.4}
@@ -135,10 +135,10 @@ export function SegmentGroupedBarChart({
             }
           }}
         />
-        <YAxis 
+        <YAxis
           stroke={isDark ? '#A0AEC0' : '#4A5568'}
           style={{ fontSize: '13px', fontWeight: 500 }}
-          tickFormatter={(value) => formatWithCommas(value, 1)}
+          tickFormatter={(value) => formatNumber(value)}
           width={90}
           tick={{ fill: isDark ? '#E2E8F0' : '#2D3748' }}
           tickMargin={15}
@@ -147,10 +147,10 @@ export function SegmentGroupedBarChart({
           label={{
             value: yAxisLabel,
             angle: -90,
-            position: 'insideLeft',
-            offset: -10,
-            style: { 
-              fontSize: '14px', 
+            position: 'left',
+            offset: 20,
+            style: {
+              fontSize: '11px',
               fontWeight: 500,
               fill: isDark ? '#E2E8F0' : '#2D3748',
               textAnchor: 'middle'
@@ -162,9 +162,9 @@ export function SegmentGroupedBarChart({
           cursor={{ fill: 'transparent' }}
           shared={false}
         />
-        <Legend 
-          wrapperStyle={{ 
-            color: isDark ? '#E2E8F0' : '#2D3748', 
+        <Legend
+          wrapperStyle={{
+            color: isDark ? '#E2E8F0' : '#2D3748',
             paddingTop: '20px',
             paddingBottom: '10px',
             fontSize: '12px',
@@ -175,13 +175,9 @@ export function SegmentGroupedBarChart({
           verticalAlign="bottom"
           align="center"
           formatter={(value) => {
-            // Truncate long labels for better readability
-            const maxLength = 25
-            const displayValue = typeof value === 'string' && value.length > maxLength 
-              ? value.substring(0, maxLength) + '...' 
-              : value
+            // Show full label without truncation
             return (
-              <span style={{ fontSize: '12px', fontWeight: 500 }}>{displayValue}</span>
+              <span style={{ fontSize: '12px', fontWeight: 500 }}>{value}</span>
             )
           }}
         />

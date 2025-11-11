@@ -28,7 +28,7 @@ export function BarChart({ data, dataKey, nameKey, color = '#0075FF', xAxisLabel
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const value = payload[0].value
-      const valueLabel = isVolume ? 'Units' : (yAxisLabel || 'Value')
+      const valueLabel = isVolume ? 'Tons' : (yAxisLabel || 'Value')
       const payloadData = payload[0].payload || {}
       const country = payloadData.country
       

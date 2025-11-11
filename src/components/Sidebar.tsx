@@ -27,7 +27,6 @@ export function Sidebar({ activeItem = 'Home', isOpen = true, onClose, onNavigat
   const navItems = [
     { icon: Home, label: 'Home', id: 'Home' },
     { icon: TrendingUp, label: 'Market Analysis', id: 'MarketAnalysis' },
-    { icon: Users, label: 'Customer Intelligence', id: 'CustomerIntelligence' },
     { icon: Mail, label: 'Contact Us', id: 'Contact' },
   ]
 

@@ -23,13 +23,6 @@ export function Home({ onNavigate }: HomeProps) {
       id: "MarketAnalysis",
       gradient: "#0075FF",
     },
-    {
-      title: "Customer Intelligence",
-      description: "Customer data analysis and insights",
-      icon: Users,
-      id: "CustomerIntelligence",
-      gradient: "#0075FF",
-    },
   ]
 
   const containerVariants = {
@@ -65,10 +58,10 @@ export function Home({ onNavigate }: HomeProps) {
         className="mb-10 text-center"
       >
         <h1 className="text-3xl md:text-4xl font-bold text-text-primary-light dark:text-text-primary-dark mb-2">
-          Global Shovel Market Analytics Dashboard
+          Global Wood Vinegar Market Analytics Dashboard
         </h1>
         <p className="text-lg text-electric-blue dark:text-cyan-accent">
-          Comprehensive market intelligence and forecasting analysis | 2021-2035
+          Industry insights, trends, historical overview and opportunity analysis | 2020-2032
         </p>
       </motion.div>
 
@@ -84,7 +77,7 @@ export function Home({ onNavigate }: HomeProps) {
             Select Analysis Category
           </h2>
           <p className="text-center text-text-secondary-light dark:text-text-secondary-dark mb-8">
-            Choose your analysis approach to explore shovel market data
+            Choose your analysis approach to explore global wood vinegar market data
           </p>
         </motion.div>
 

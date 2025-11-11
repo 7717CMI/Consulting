@@ -29,7 +29,7 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({
     year: [] as number[],
-    country: [] as string[],
+    country: ['U.S.', 'Canada'] as string[],
     productType: [] as string[],
     bladeMaterial: [] as string[],
     handleLength: [] as string[],
@@ -42,22 +42,28 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
   
   // Separate filters for incremental tab
   const [incrementalFilters, setIncrementalFilters] = useState({
-    region: [] as string[],
-    productType: [] as string[],
-    country: [] as string[],
+    region: ['North America'] as string[],
+    country: ['U.S.', 'Canada'] as string[],
   })
-  
+
   // Separate filters for attractiveness tab
   const [attractivenessFilters, setAttractivenessFilters] = useState({
-    region: [] as string[],
-    productType: [] as string[],
+    region: ['North America'] as string[],
+    country: ['U.S.', 'Canada'] as string[],
+    selectedCategory: '' as string, // Which category to show bubbles for
+    pyrolysisMethod: [] as string[],
+    sourceMaterial: [] as string[],
+    productGrade: [] as string[],
+    form: [] as string[],
+    application: [] as string[],
+    distributionChannel: [] as string[],
   })
-  
+
   // Separate filters for YoY/CAGR tab
   const [yoyFilters, setYoyFilters] = useState({
-    region: [] as string[],
+    region: ['North America'] as string[],
     productType: [] as string[],
-    country: [] as string[],
+    country: ['U.S.', 'Canada'] as string[],
   })
 
   useEffect(() => {
@@ -88,29 +94,23 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                 : availableYears.length > 0
                   ? [availableYears[availableYears.length - 1]]
                   : []
-          const defaultCountries = availableCountries.length >= 2 && availableCountries.includes('USA') && availableCountries.includes('Canada')
-            ? ['USA', 'Canada']
+          const defaultCountries = availableCountries.length >= 2 && availableCountries.includes('U.S.') && availableCountries.includes('Canada')
+            ? ['U.S.', 'Canada']
             : availableCountries.length >= 2
               ? availableCountries.slice(0, 2)
               : availableCountries.length === 1
                 ? [availableCountries[0]]
                 : []
           
-          // Select all available options by default to show all data in graphs
-          const defaultProductTypes = availableProductTypes
-          const defaultBladeMaterials = availableBladeMaterials
-          const defaultHandleLengths = availableHandleLengths
-          const defaultApplications = availableApplications
-          const defaultEndUsers = availableEndUsers
-          
+          // Select 2-3 years by default and set default countries
           setFilters({
             year: defaultYears,
             country: defaultCountries,
-            productType: defaultProductTypes,
-            bladeMaterial: defaultBladeMaterials,
-            handleLength: defaultHandleLengths,
-            application: defaultApplications,
-            endUser: defaultEndUsers,
+            productType: [],
+            bladeMaterial: [],
+            handleLength: [],
+            application: [],
+            endUser: [],
             distributionChannelType: [],
             distributionChannel: [],
             marketEvaluation: 'By Value',
@@ -183,70 +183,78 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
     }
   }, [data])
 
-  // Get all distribution channels from full data, grouped by type
+  // Get all application subtypes from full data, grouped by application category
   const distributionChannelGroupedOptions = useMemo(() => {
-    const offlineChannels = ['Hardware Stores', 'Specialty Garden Centers', 'Agricultural Supply Stores']
-    const onlineChannels = ['Ecommerce Website', "Brand's/Company's Own Website"]
-    
+    // Application subtypes mapping
+    const applicationSubtypes: Record<string, string[]> = {
+      "Agriculture & Farming": [
+        "Bio-Pesticide",
+        "Soil Conditioner",
+        "Plant Growth Promoter",
+        "Compost Accelerator"
+      ],
+      "Animal Feed & Husbandry": [
+        "Feed Additive",
+        "Odor Control"
+      ],
+      "Food & Beverage": [
+        "Natural Flavoring"
+      ],
+      "Pharmaceuticals & Healthcare": [
+        "Antiseptic",
+        "Detoxification Agent"
+      ],
+      "Personal Care & Cosmetics": [
+        "Skincare Products",
+        "Deodorants"
+      ],
+      "Activated Carbon & Charcoal Production": [
+        "Carbonization Aid",
+        "Quality Enhancer"
+      ],
+      "Others (Bioenergy & Chemicals etc.)": []
+    }
+
     // Get all channels that exist in the data
     if (!data || data.length === 0) return []
-    
+
     const channelSet = new Set<string>()
     data.forEach(d => {
       if (d.distributionChannel) channelSet.add(d.distributionChannel)
     })
-    
+
     const allChannels = Array.from(channelSet)
-    
-    // Filter channels based on selected types
+
+    // Filter channels based on selected application categories (endUser filter)
     const groups: Array<{ group: string; items: string[] }> = []
-    
-    if (filters.distributionChannelType.length === 0) {
-      // No type selected - show all channels grouped
-      const availableOffline = offlineChannels.filter(ch => allChannels.includes(ch))
-      const availableOnline = onlineChannels.filter(ch => allChannels.includes(ch))
-      
-      if (availableOffline.length > 0) {
-        groups.push({
-          group: 'Offline',
-          items: availableOffline
-        })
-      }
-      
-      if (availableOnline.length > 0) {
-        groups.push({
-          group: 'Online',
-          items: availableOnline
-        })
-      }
+
+    if (filters.endUser.length === 0) {
+      // No application selected - show all subtypes grouped by application
+      Object.entries(applicationSubtypes).forEach(([appCategory, subtypes]) => {
+        const availableSubtypes = subtypes.filter(ch => allChannels.includes(ch))
+        if (availableSubtypes.length > 0) {
+          groups.push({
+            group: appCategory,
+            items: availableSubtypes
+          })
+        }
+      })
     } else {
-      // Show only channels for selected types, but always show both groups if both types are selected
-      const hasOffline = filters.distributionChannelType.includes('Offline')
-      const hasOnline = filters.distributionChannelType.includes('Online')
-      
-      if (hasOffline) {
-        const availableOffline = offlineChannels.filter(ch => allChannels.includes(ch))
-        if (availableOffline.length > 0) {
+      // Show only subtypes for selected application categories
+      filters.endUser.forEach(appCategory => {
+        const subtypes = applicationSubtypes[appCategory] || []
+        const availableSubtypes = subtypes.filter(ch => allChannels.includes(ch))
+        if (availableSubtypes.length > 0) {
           groups.push({
-            group: 'Offline',
-            items: availableOffline
+            group: appCategory,
+            items: availableSubtypes
           })
         }
-      }
-      
-      if (hasOnline) {
-        const availableOnline = onlineChannels.filter(ch => allChannels.includes(ch))
-        if (availableOnline.length > 0) {
-          groups.push({
-            group: 'Online',
-            items: availableOnline
-          })
-        }
-      }
+      })
     }
-    
+
     return groups
-  }, [data, filters.distributionChannelType])
+  }, [data, filters.endUser])
 
   // Get flat list of available distribution channels based on selected types
   const availableDistributionChannels = useMemo(() => {
@@ -316,7 +324,7 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
   }
 
   const getDataLabel = (): string => {
-    return filters.marketEvaluation === 'By Volume' ? 'Market Volume (Units)' : 'Market Size (US$ Million)'
+    return filters.marketEvaluation === 'By Volume' ? 'Market Volume (Tons)' : 'Market Size (US$ Million)'
   }
 
   // Analysis data for charts - Market segment based
@@ -337,6 +345,7 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
         endUsers: [] as string[],
         countries: [] as string[],
         bladeMaterialStackedData: { chartData: [], segments: [] },
+        productTypeStackedData: { chartData: [], segments: [] },
         handleLengthStackedData: { chartData: [], segments: [] },
         applicationStackedData: { chartData: [], segments: [] },
         endUserStackedData: { chartData: [], segments: [] },
@@ -529,6 +538,10 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
       (d) => d.bladeMaterial || '',
       filters.bladeMaterial.length > 0 ? filters.bladeMaterial : undefined
     )
+    const productTypeStackedData = generateYearWiseStackedBarData(
+      (d) => d.productType || '',
+      filters.productType.length > 0 ? filters.productType : undefined
+    )
     const handleLengthStackedData = generateYearWiseStackedBarData(
       (d) => d.handleLength || '',
       filters.handleLength.length > 0 ? filters.handleLength : undefined
@@ -639,6 +652,7 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
       countries,
       // Year-wise stacked bar chart data for share analysis
       bladeMaterialStackedData,
+      productTypeStackedData,
       handleLengthStackedData,
       applicationStackedData,
       endUserStackedData,
@@ -659,8 +673,8 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
     const totalValue = filteredData.reduce((sum, d) => sum + getDataValue(d), 0)
 
     return {
-      totalValue: filters.marketEvaluation === 'By Volume' 
-        ? `${formatWithCommas(totalValue / 1000, 1)}K Units`
+      totalValue: filters.marketEvaluation === 'By Volume'
+        ? `${formatWithCommas(totalValue / 1000, 1)}K Tons`
         : `${formatWithCommas(totalValue, 1)}M`,
     }
   }, [filteredData, filters.marketEvaluation])
@@ -670,42 +684,46 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
     if (!data || data.length === 0) {
       return {
         regions: [],
-        productTypes: [],
         countries: [],
       }
     }
-    
+
     const regionSet = new Set<string>()
-    const productTypeSet = new Set<string>()
-    const countrySet = new Set<string>()
-    
+    const countryRegionMap = new Map<string, string>() // country -> region mapping
+
     data.forEach(d => {
       if (d.region) regionSet.add(d.region)
-      if (d.productType) productTypeSet.add(d.productType)
-      if (d.country) countrySet.add(d.country)
+      if (d.country && d.region) {
+        countryRegionMap.set(d.country, d.region)
+      }
     })
-    
+
+    // Filter countries based on selected regions
+    let availableCountries = Array.from(countryRegionMap.keys())
+    if (incrementalFilters.region.length > 0) {
+      availableCountries = availableCountries.filter(country => {
+        const countryRegion = countryRegionMap.get(country)
+        return countryRegion && incrementalFilters.region.includes(countryRegion)
+      })
+    }
+
     return {
       regions: Array.from(regionSet).sort(),
-      productTypes: Array.from(productTypeSet).sort(),
-      countries: Array.from(countrySet).sort(),
+      countries: availableCountries.sort(),
     }
-  }, [data])
+  }, [data, incrementalFilters.region])
 
   // Filter data for incremental chart
   const filteredIncrementalData = useMemo(() => {
     let filtered = [...data]
-    
+
     if (incrementalFilters.region.length > 0) {
       filtered = filtered.filter(d => incrementalFilters.region.includes(d.region))
-    }
-    if (incrementalFilters.productType.length > 0) {
-      filtered = filtered.filter(d => incrementalFilters.productType.includes(d.productType))
     }
     if (incrementalFilters.country.length > 0) {
       filtered = filtered.filter(d => incrementalFilters.country.includes(d.country))
     }
-    
+
     return filtered
   }, [data, incrementalFilters])
 
@@ -757,166 +775,211 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
       return {
         regions: [],
         productTypes: [],
+        countries: [],
       }
     }
-    
+
     const regionSet = new Set<string>()
-    const productTypeSet = new Set<string>()
-    
+    const pyrolysisMethodSet = new Set<string>()
+    const sourceMaterialSet = new Set<string>()
+    const productGradeSet = new Set<string>()
+    const formSet = new Set<string>()
+    const applicationSet = new Set<string>()
+    const distributionChannelSet = new Set<string>()
+    const countryRegionMap = new Map<string, string>() // country -> region mapping
+
     data.forEach(d => {
       if (d.region) regionSet.add(d.region)
-      if (d.productType) productTypeSet.add(d.productType)
+      if (d.productType) pyrolysisMethodSet.add(d.productType)
+      if (d.bladeMaterial) sourceMaterialSet.add(d.bladeMaterial)
+      if (d.handleLength) productGradeSet.add(d.handleLength)
+      if (d.application) formSet.add(d.application)
+      if (d.endUser) applicationSet.add(d.endUser)
+      if (d.distributionChannelType) distributionChannelSet.add(d.distributionChannelType)
+      if (d.country && d.region) {
+        countryRegionMap.set(d.country, d.region)
+      }
     })
-    
+
+    // Filter countries based on selected regions
+    let availableCountries = Array.from(countryRegionMap.keys())
+    if (attractivenessFilters.region.length > 0) {
+      availableCountries = availableCountries.filter(country => {
+        const countryRegion = countryRegionMap.get(country)
+        return countryRegion && attractivenessFilters.region.includes(countryRegion)
+      })
+    }
+
     return {
       regions: Array.from(regionSet).sort(),
-      productTypes: Array.from(productTypeSet).sort(),
+      pyrolysisMethods: Array.from(pyrolysisMethodSet).sort(),
+      sourceMaterials: Array.from(sourceMaterialSet).sort(),
+      productGrades: Array.from(productGradeSet).sort(),
+      forms: Array.from(formSet).sort(),
+      applications: Array.from(applicationSet).sort(),
+      distributionChannels: Array.from(distributionChannelSet).sort(),
+      countries: availableCountries.sort(),
     }
-  }, [data])
+  }, [data, attractivenessFilters.region])
 
   // Filter data for attractiveness chart
   const filteredAttractivenessData = useMemo(() => {
     let filtered = [...data]
-    
+
     // Filter by year range 2025-2032
     filtered = filtered.filter(d => d.year >= 2025 && d.year <= 2032)
-    
+
     if (attractivenessFilters.region.length > 0) {
       filtered = filtered.filter(d => attractivenessFilters.region.includes(d.region))
     }
-    if (attractivenessFilters.productType.length > 0) {
-      filtered = filtered.filter(d => attractivenessFilters.productType.includes(d.productType))
+    if (attractivenessFilters.country.length > 0) {
+      filtered = filtered.filter(d => attractivenessFilters.country.includes(d.country))
     }
-    
+    if (attractivenessFilters.pyrolysisMethod.length > 0) {
+      filtered = filtered.filter(d => attractivenessFilters.pyrolysisMethod.includes(d.productType))
+    }
+    if (attractivenessFilters.sourceMaterial.length > 0) {
+      filtered = filtered.filter(d => attractivenessFilters.sourceMaterial.includes(d.bladeMaterial))
+    }
+    if (attractivenessFilters.productGrade.length > 0) {
+      filtered = filtered.filter(d => attractivenessFilters.productGrade.includes(d.handleLength))
+    }
+    if (attractivenessFilters.form.length > 0) {
+      filtered = filtered.filter(d => attractivenessFilters.form.includes(d.application))
+    }
+    if (attractivenessFilters.application.length > 0) {
+      filtered = filtered.filter(d => attractivenessFilters.application.includes(d.endUser))
+    }
+    if (attractivenessFilters.distributionChannel.length > 0) {
+      filtered = filtered.filter(d => attractivenessFilters.distributionChannel.includes(d.distributionChannelType))
+    }
+
     return filtered
   }, [data, attractivenessFilters])
 
-  // Bubble Chart Data (Market Attractiveness) - based on filters
-  const bubbleChartData = useMemo(() => {
-    // Group data by region
-    const regionDataMap = new Map<string, {
+  // Bubble Chart Data (Market Attractiveness) - group by selected category
+  const bubbleChartDataByCategory = useMemo(() => {
+    // Determine what to group by based on selectedCategory
+    const category = attractivenessFilters.selectedCategory
+
+    // Helper function to get the field value based on category
+    const getCategoryValue = (d: any, cat: string) => {
+      switch (cat) {
+        case 'pyrolysisMethod': return d.productType
+        case 'sourceMaterial': return d.bladeMaterial
+        case 'productGrade': return d.handleLength
+        case 'form': return d.application
+        case 'application': return d.endUser
+        case 'distributionChannel': return d.distributionChannelType
+        default: return d.region // Default to region
+      }
+    }
+
+    // If no category selected, return empty array
+    if (!category) {
+      return []
+    }
+
+    // Group data by the selected category
+    const categoryDataMap = new Map<string, {
       values: number[]
       volumes: number[]
       years: number[]
     }>()
-    
+
     filteredAttractivenessData.forEach(d => {
-      const region = d.region
-      if (!region) return
-      
-      if (!regionDataMap.has(region)) {
-        regionDataMap.set(region, { values: [], volumes: [], years: [] })
+      const categoryValue = getCategoryValue(d, category)
+      if (!categoryValue) return
+
+      if (!categoryDataMap.has(categoryValue)) {
+        categoryDataMap.set(categoryValue, { values: [], volumes: [], years: [] })
       }
-      
-      const regionData = regionDataMap.get(region)!
+
+      const itemData = categoryDataMap.get(categoryValue)!
       const value = (d.marketValueUsd || 0) / 1000 // Convert to millions
-      regionData.values.push(value)
-      regionData.volumes.push(d.volumeUnits || 0)
-      regionData.years.push(d.year)
+      itemData.values.push(value)
+      itemData.volumes.push(d.volumeUnits || 0)
+      itemData.years.push(d.year)
     })
-    
-    // Calculate CAGR Index and Market Share Index for each region
-    const regions = Array.from(regionDataMap.keys())
-    const allRegionsTotal = filteredAttractivenessData.reduce((sum, d) => sum + (d.marketValueUsd || 0) / 1000, 0)
-    
-    const bubbleData = regions.map(region => {
-      const regionData = regionDataMap.get(region)!
-      
+
+    // Calculate CAGR Index and Market Share Index for each category item
+    const items = Array.from(categoryDataMap.keys())
+    const allItemsTotal = filteredAttractivenessData.reduce((sum, d) => sum + (d.marketValueUsd || 0) / 1000, 0)
+
+    // First pass: calculate raw values
+    const rawBubbleData = items.map(item => {
+      const itemData = categoryDataMap.get(item)!
+
       // Calculate CAGR (Compound Annual Growth Rate) from 2025 to 2032
       const startYear = 2025
       const endYear = 2032
-      const startValue = regionData.values.find((_, i) => regionData.years[i] === startYear) || 0
-      const endValue = regionData.values.find((_, i) => regionData.years[i] === endYear) || 0
-      
+
+      // Calculate average value for start and end years
+      const startValues = itemData.values.filter((_, i) => itemData.years[i] === startYear)
+      const endValues = itemData.values.filter((_, i) => itemData.years[i] === endYear)
+      const startValue = startValues.length > 0 ? startValues.reduce((a, b) => a + b, 0) / startValues.length : 0
+      const endValue = endValues.length > 0 ? endValues.reduce((a, b) => a + b, 0) / endValues.length : 0
+
       let cagr = 0
       if (startValue > 0 && endValue > 0) {
         const years = endYear - startYear
         cagr = (Math.pow(endValue / startValue, 1 / years) - 1) * 100
       }
-      
+
       // Calculate Market Share Index (average market share across years)
-      const regionTotal = regionData.values.reduce((sum, v) => sum + v, 0)
-      const marketShare = allRegionsTotal > 0 ? (regionTotal / allRegionsTotal) * 100 : 0
-      
+      const itemTotal = itemData.values.reduce((sum, v) => sum + v, 0)
+      const marketShare = allItemsTotal > 0 ? (itemTotal / allItemsTotal) * 100 : 0
+
       // Calculate Incremental Opportunity (total growth from 2025 to 2032)
       const incrementalOpportunity = endValue - startValue
-      
-      // Normalize to index scale (0-10) for display
-      const cagrIndex = Math.min(cagr / 10, 10) // Scale CAGR to 0-10 index
-      const marketShareIndex = Math.min(marketShare / 10, 10) // Scale market share to 0-10 index
-      
-      // Use default values if no data
-      const defaultValues: Record<string, { cagr: number; share: number; opp: number }> = {
-        'APAC': { cagr: 8.5, share: 9.2, opp: 12500 },
-        'Asia Pacific': { cagr: 8.5, share: 9.2, opp: 12500 },
-        'Europe': { cagr: 5.2, share: 6.8, opp: 6800 },
-        'North America': { cagr: 5.8, share: 7.1, opp: 7200 },
-        'Middle East': { cagr: 6.5, share: 3.2, opp: 1200 },
-        'Latin America': { cagr: 4.2, share: 2.8, opp: 800 },
-        'Africa': { cagr: 3.8, share: 1.9, opp: 400 },
-      }
-      
-      const defaults = defaultValues[region] || { cagr: 5.0, share: 5.0, opp: 5000 }
-      
-      // Map region names to match screenshot
-      const regionDisplayName = region === 'APAC' ? 'Asia Pacific' : region
-      
+
       return {
-        region: regionDisplayName,
-        cagrIndex: cagrIndex > 0 ? cagrIndex : defaults.cagr,
-        marketShareIndex: marketShareIndex > 0 ? marketShareIndex : defaults.share,
-        incrementalOpportunity: incrementalOpportunity > 0 ? incrementalOpportunity : defaults.opp,
-        description: regionDisplayName === 'Asia Pacific' 
-          ? 'Asia Pacific are expected to dominate the Global Shovel Market from rapid industrialization, strong manufacturing capabilities, and robust construction and agricultural sectors that drive significant demand for high-quality shovels.'
-          : undefined,
+        region: item,
+        cagr,
+        marketShare,
+        incrementalOpportunity: Math.abs(incrementalOpportunity),
       }
     })
-    
-    // If no regions in filtered data, return default regions
-    if (bubbleData.length === 0) {
-      return [
-        {
-          region: 'Asia Pacific',
-          cagrIndex: 8.5,
-          marketShareIndex: 9.2,
-          incrementalOpportunity: 12500,
-          description: 'Asia Pacific are expected to dominate the Global Shovel Market from rapid industrialization, strong manufacturing capabilities, and robust construction and agricultural sectors that drive significant demand for high-quality shovels.',
-        },
-        {
-          region: 'Europe',
-          cagrIndex: 5.2,
-          marketShareIndex: 6.8,
-          incrementalOpportunity: 6800,
-        },
-        {
-          region: 'North America',
-          cagrIndex: 5.8,
-          marketShareIndex: 7.1,
-          incrementalOpportunity: 7200,
-        },
-        {
-          region: 'Middle East',
-          cagrIndex: 6.5,
-          marketShareIndex: 3.2,
-          incrementalOpportunity: 1200,
-        },
-        {
-          region: 'Latin America',
-          cagrIndex: 4.2,
-          marketShareIndex: 2.8,
-          incrementalOpportunity: 800,
-        },
-        {
-          region: 'Africa',
-          cagrIndex: 3.8,
-          marketShareIndex: 1.9,
-          incrementalOpportunity: 400,
-        },
-      ]
-    }
-    
+
+    // Find min/max for better scaling
+    const cagrValues = rawBubbleData.map(d => d.cagr)
+    const marketShareValues = rawBubbleData.map(d => d.marketShare)
+
+    const minCagr = Math.min(...cagrValues)
+    const maxCagr = Math.max(...cagrValues)
+    const minShare = Math.min(...marketShareValues)
+    const maxShare = Math.max(...marketShareValues)
+
+    const cagrRange = maxCagr - minCagr
+    const shareRange = maxShare - minShare
+
+    // Second pass: normalize with better spread
+    const bubbleData = rawBubbleData.map((item, index) => {
+      // Scale to 0-10 range with better distribution
+      let cagrIndex = 5.0
+      let marketShareIndex = 5.0
+
+      if (cagrRange > 0) {
+        // Normalize to 0-10 based on actual min/max range
+        cagrIndex = ((item.cagr - minCagr) / cagrRange) * 10
+      }
+
+      if (shareRange > 0) {
+        // Normalize to 0-10 based on actual min/max range
+        marketShareIndex = ((item.marketShare - minShare) / shareRange) * 10
+      }
+
+      return {
+        region: item.region, // Using 'region' field for compatibility with BubbleChart component
+        cagrIndex: cagrIndex,
+        marketShareIndex: marketShareIndex,
+        incrementalOpportunity: item.incrementalOpportunity || 1000,
+        colorIndex: index, // Add color index for unique colors
+      }
+    })
+
     return bubbleData
-  }, [filteredAttractivenessData])
+  }, [filteredAttractivenessData, attractivenessFilters.selectedCategory])
 
   // Get unique options for YoY filters
   const yoyFilterOptions = useMemo(() => {
@@ -1124,7 +1187,7 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
       >
-        <InfoTooltip content="• Provides insights into market size and volume analysis\n• Analyze data by market segments: Product Type, Blade Material, Handle Length, Application, End User\n• Use filters to explore market trends\n• Charts show market size (US$ Million) or volume (Units) by selected segments">
+        <InfoTooltip content="• Provides insights into market size and volume analysis\n• Analyze data by market segments: Product Type, Blade Material, Handle Length, Application, End User\n• Use filters to explore market trends\n• Charts show market size (US$ Million) or volume (Tons) by selected segments">
           <h1 className="text-4xl font-bold text-text-primary-light dark:text-text-primary-dark mb-3 cursor-help">
             Market Analysis
           </h1>
@@ -1197,7 +1260,7 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                     : 'text-text-secondary-light dark:text-text-secondary-dark hover:text-electric-blue dark:hover:text-cyan-accent'
                 }`}
               >
-                YoY / CAGR Analysis
+                Y-o-Y Analysis
                 {activeTab === 'yoy' && (
                   <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${isDark ? 'bg-cyan-accent' : 'bg-electric-blue'}`}></div>
                 )}
@@ -1256,68 +1319,68 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <FilterDropdown
-                label="By Product Type"
+                label="By Pyrolysis Method"
                 value={filters.productType}
                 onChange={(value) => setFilters({ ...filters, productType: value as string[] })}
                 options={uniqueOptions.productTypes}
               />
               <FilterDropdown
-                label="By Blade Material"
+                label="By Source Material"
                 value={filters.bladeMaterial}
                 onChange={(value) => setFilters({ ...filters, bladeMaterial: value as string[] })}
                 options={uniqueOptions.bladeMaterials}
               />
               <FilterDropdown
-                label="By Handle Length"
+                label="By Product Grade"
                 value={filters.handleLength}
                 onChange={(value) => setFilters({ ...filters, handleLength: value as string[] })}
                 options={uniqueOptions.handleLengths}
               />
               <FilterDropdown
-                label="By Application"
+                label="By Form"
                 value={filters.application}
                 onChange={(value) => setFilters({ ...filters, application: value as string[] })}
                 options={uniqueOptions.applications}
               />
               <FilterDropdown
-                label="By End User"
-                value={filters.endUser}
-                onChange={(value) => setFilters({ ...filters, endUser: value as string[] })}
-                options={uniqueOptions.endUsers}
-              />
-              <FilterDropdown
-                label="By Distribution Channel Type"
+                label="By Distribution Channel"
                 value={filters.distributionChannelType}
-                onChange={(value) => {
-                  const newTypes = value as string[]
-                  // Filter out invalid subtypes when type changes
-                  let validSubtypes = filters.distributionChannel
-                  if (newTypes.length > 0 && filters.distributionChannel.length > 0) {
-                    // Get valid subtypes for selected types
-                    const typeFilteredData = data.filter(d => 
-                      newTypes.includes(d.distributionChannelType)
-                    )
-                    const validSubtypeSet = new Set<string>()
-                    typeFilteredData.forEach(d => {
-                      if (d.distributionChannel) validSubtypeSet.add(d.distributionChannel)
-                    })
-                    validSubtypes = filters.distributionChannel.filter(subtype => 
-                      validSubtypeSet.has(subtype)
-                    )
-                  } else if (newTypes.length === 0) {
-                    // If no types selected, clear subtypes
-                    validSubtypes = []
-                  }
-                  setFilters({ 
-                    ...filters, 
-                    distributionChannelType: newTypes,
-                    distributionChannel: validSubtypes
-                  })
-                }}
+                onChange={(value) => setFilters({ ...filters, distributionChannelType: value as string[] })}
                 options={uniqueOptions.distributionChannelTypes || []}
               />
               <FilterDropdown
-                label="By Distribution Channel Subtype"
+                label="By Application"
+                value={filters.endUser}
+                onChange={(value) => {
+                  const newCategories = value as string[]
+                  // Filter out invalid subtypes when application category changes
+                  let validSubtypes = filters.distributionChannel
+                  if (newCategories.length > 0 && filters.distributionChannel.length > 0) {
+                    // Get valid subtypes for selected application categories
+                    const categoryFilteredData = data.filter(d =>
+                      newCategories.includes(d.endUser)
+                    )
+                    const validSubtypeSet = new Set<string>()
+                    categoryFilteredData.forEach(d => {
+                      if (d.distributionChannel) validSubtypeSet.add(d.distributionChannel)
+                    })
+                    validSubtypes = filters.distributionChannel.filter(subtype =>
+                      validSubtypeSet.has(subtype)
+                    )
+                  } else if (newCategories.length === 0) {
+                    // If no categories selected, clear subtypes
+                    validSubtypes = []
+                  }
+                  setFilters({
+                    ...filters,
+                    endUser: newCategories,
+                    distributionChannel: validSubtypes
+                  })
+                }}
+                options={uniqueOptions.endUsers}
+              />
+              <FilterDropdown
+                label="By Application Subtype"
                 value={filters.distributionChannel}
                 onChange={(value) => setFilters({ ...filters, distributionChannel: value as string[] })}
                 options={availableDistributionChannels}
@@ -1387,26 +1450,26 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                 </div>
               </div>
 
-              {/* Graph 1: Market Size by Product Type */}
-          {analysisData.productTypeChartData.length > 0 && analysisData.productTypes && analysisData.productTypes.length > 0 && (
+              {/* Graph 1: Market Size By Product Grade */}
+          {analysisData.handleLengthChartData.length > 0 && analysisData.handleLengths && analysisData.handleLengths.length > 0 && (
             <div className="mb-20">
               <div className="mb-8">
                 <div className="flex items-center gap-3 mb-3">
                   <div className={`w-1 h-10 rounded-full ${isDark ? 'bg-cyan-accent' : 'bg-electric-blue'}`}></div>
-                  <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} by product type grouped by year\n• X-axis: Year\n• Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Compare product type performance across years`}>
+                  <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} by product grade grouped by year\n• X-axis: Year\n• Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Compare product grade performance across years`}>
                     <h2 className="text-3xl font-bold text-text-primary-light dark:text-text-primary-dark cursor-help">
-                      {filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'} by Product Type
+                      {filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'} By Product Grade
                     </h2>
                   </InfoTooltip>
                 </div>
                 <p className="text-base text-text-secondary-light dark:text-text-secondary-dark ml-4 mb-2">
-                  Product type performance comparison by year
+                  Product grade performance comparison by year
                 </p>
               </div>
               <div className={`p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[550px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
                 <div className="mb-4 pb-4 border-b border-gray-200 dark:border-navy-light">
                   <h3 className="text-lg font-bold text-electric-blue dark:text-cyan-accent mb-1">
-                    {filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'} by Product Type by Year
+                    {filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'} By Product Grade by Year
                   </h3>
                   <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
                     {getDataLabel()}
@@ -1414,8 +1477,8 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                 </div>
                 <div className="flex-1 flex items-center justify-center min-h-0 pt-2">
                   <SegmentGroupedBarChart
-                    data={analysisData.productTypeChartData}
-                    segmentKeys={analysisData.productTypes}
+                    data={analysisData.handleLengthChartData}
+                    segmentKeys={analysisData.handleLengths}
                     xAxisLabel="Year"
                     yAxisLabel={getDataLabel()}
                   />
@@ -1426,7 +1489,7 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
 
           {/* Share Analysis Section - Year-wise Stacked Bar Charts */}
           {((analysisData.bladeMaterialStackedData.chartData.length > 0 && analysisData.bladeMaterialStackedData.segments.length > 0) ||
-            (analysisData.handleLengthStackedData.chartData.length > 0 && analysisData.handleLengthStackedData.segments.length > 0) ||
+            (analysisData.productTypeStackedData.chartData.length > 0 && analysisData.productTypeStackedData.segments.length > 0) ||
             (analysisData.applicationStackedData.chartData.length > 0 && analysisData.applicationStackedData.segments.length > 0) ||
             (analysisData.endUserStackedData.chartData.length > 0 && analysisData.endUserStackedData.segments.length > 0) ||
             (analysisData.distributionChannelTypeStackedData.chartData.length > 0 && analysisData.distributionChannelTypeStackedData.segments.length > 0) ||
@@ -1452,9 +1515,9 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                 {analysisData.bladeMaterialStackedData.chartData.length > 0 && analysisData.bladeMaterialStackedData.segments.length > 0 && (
                   <div className={`p-5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[480px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
                     <div className="mb-3 pb-3 border-b border-gray-200 dark:border-navy-light">
-                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share by blade material by year\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Each stacked bar shows the proportion for that year\n• Hover over bars to see detailed values and percentages`}>
+                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share by source material by year\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Each stacked bar shows the proportion for that year\n• Hover over bars to see detailed values and percentages`}>
                         <h3 className="text-base font-bold text-electric-blue dark:text-cyan-accent mb-1 cursor-help">
-                          Blade Material Share
+                          Source Material Share
                         </h3>
                       </InfoTooltip>
                       <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
@@ -1473,13 +1536,13 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                   </div>
                 )}
 
-                {/* Handle Length Stacked Bar Chart */}
-                {analysisData.handleLengthStackedData.chartData.length > 0 && analysisData.handleLengthStackedData.segments.length > 0 && (
+                {/* Pyrolysis Method Stacked Bar Chart */}
+                {analysisData.productTypeStackedData.chartData.length > 0 && analysisData.productTypeStackedData.segments.length > 0 && (
                   <div className={`p-5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[480px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
                     <div className="mb-3 pb-3 border-b border-gray-200 dark:border-navy-light">
-                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share by handle length by year\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Each stacked bar shows the proportion for that year\n• Hover over bars to see detailed values and percentages`}>
+                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share by pyrolysis method by year\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Each stacked bar shows the proportion for that year\n• Hover over bars to see detailed values and percentages`}>
                         <h3 className="text-base font-bold text-electric-blue dark:text-cyan-accent mb-1 cursor-help">
-                          Handle Length Share
+                          Pyrolysis Method Share
                         </h3>
                       </InfoTooltip>
                       <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
@@ -1488,8 +1551,8 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                     </div>
                     <div className="flex-1 flex items-center justify-center min-h-0">
                       <CrossSegmentStackedBarChart
-                        data={analysisData.handleLengthStackedData.chartData}
-                        dataKeys={analysisData.handleLengthStackedData.segments}
+                        data={analysisData.productTypeStackedData.chartData}
+                        dataKeys={analysisData.productTypeStackedData.segments}
                         xAxisLabel="Year"
                         yAxisLabel={getDataLabel()}
                         nameKey="year"
@@ -1502,9 +1565,9 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                 {analysisData.applicationStackedData.chartData.length > 0 && analysisData.applicationStackedData.segments.length > 0 && (
                   <div className={`p-5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[480px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
                     <div className="mb-3 pb-3 border-b border-gray-200 dark:border-navy-light">
-                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share by application by year\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Each stacked bar shows the proportion for that year\n• Hover over bars to see detailed values and percentages`}>
+                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share by form by year\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Each stacked bar shows the proportion for that year\n• Hover over bars to see detailed values and percentages`}>
                         <h3 className="text-base font-bold text-electric-blue dark:text-cyan-accent mb-1 cursor-help">
-                          Application Share
+                          Form Share
                         </h3>
                       </InfoTooltip>
                       <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
@@ -1527,9 +1590,9 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                 {analysisData.endUserStackedData.chartData.length > 0 && analysisData.endUserStackedData.segments.length > 0 && (
                   <div className={`p-5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[480px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
                     <div className="mb-3 pb-3 border-b border-gray-200 dark:border-navy-light">
-                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share by end user by year\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Each stacked bar shows the proportion for that year\n• Hover over bars to see detailed values and percentages`}>
+                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share by application by year\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Each stacked bar shows the proportion for that year\n• Hover over bars to see detailed values and percentages`}>
                         <h3 className="text-base font-bold text-electric-blue dark:text-cyan-accent mb-1 cursor-help">
-                          End User Share
+                          Application Share
                         </h3>
                       </InfoTooltip>
                       <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
@@ -1697,7 +1760,7 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                     data={analysisData.regionCountryPercentageChartData}
                     dataKey="value"
                     xAxisLabel="Year"
-                    yAxisLabel={filters.marketEvaluation === 'By Volume' ? 'Volume (Units)' : 'Percentage (%)'}
+                    yAxisLabel={filters.marketEvaluation === 'By Volume' ? 'Volume (Tons)' : 'Percentage (%)'}
                     showPercentage={filters.marketEvaluation === 'By Value'}
                   />
                 </div>
@@ -1720,22 +1783,16 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                     </h3>
                   </div>
                   <p className="text-base text-text-secondary-light dark:text-text-secondary-dark ml-4">
-                    Filter incremental opportunity data by region, product type, and country.
+                    Filter incremental opportunity data by region and country.
                   </p>
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FilterDropdown
                     label="Region"
                     value={incrementalFilters.region}
                     onChange={(value) => setIncrementalFilters({ ...incrementalFilters, region: value as string[] })}
                     options={incrementalFilterOptions.regions}
-                  />
-                  <FilterDropdown
-                    label="Product Type"
-                    value={incrementalFilters.productType}
-                    onChange={(value) => setIncrementalFilters({ ...incrementalFilters, productType: value as string[] })}
-                    options={incrementalFilterOptions.productTypes}
                   />
                   <FilterDropdown
                     label="Country"
@@ -1774,22 +1831,49 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                     </h3>
                   </div>
                   <p className="text-base text-text-secondary-light dark:text-text-secondary-dark ml-4">
-                    Filter market attractiveness data by region and product type (2025-2032).
+                    Filter market attractiveness data by region and country. Then select a product category - bubbles will show different items from that category with unique colors (2025-2032).
                   </p>
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <FilterDropdown
                     label="Region"
                     value={attractivenessFilters.region}
-                    onChange={(value) => setAttractivenessFilters({ ...attractivenessFilters, region: value as string[] })}
+                    onChange={(value) => {
+                      const newRegions = value as string[]
+                      setAttractivenessFilters({ ...attractivenessFilters, region: newRegions, country: [] })
+                    }}
                     options={attractivenessFilterOptions.regions}
                   />
                   <FilterDropdown
+                    label="Country"
+                    value={attractivenessFilters.country}
+                    onChange={(value) => setAttractivenessFilters({ ...attractivenessFilters, country: value as string[] })}
+                    options={attractivenessFilterOptions.countries}
+                  />
+                  <FilterDropdown
                     label="Product Type"
-                    value={attractivenessFilters.productType}
-                    onChange={(value) => setAttractivenessFilters({ ...attractivenessFilters, productType: value as string[] })}
-                    options={attractivenessFilterOptions.productTypes}
+                    value={attractivenessFilters.selectedCategory || ''}
+                    onChange={(value) => {
+                      setAttractivenessFilters({ ...attractivenessFilters, selectedCategory: value as string })
+                    }}
+                    options={[
+                      'pyrolysisMethod',
+                      'sourceMaterial',
+                      'productGrade',
+                      'form',
+                      'application',
+                      'distributionChannel'
+                    ]}
+                    optionLabels={{
+                      'pyrolysisMethod': 'By Pyrolysis Method',
+                      'sourceMaterial': 'By Source Material',
+                      'productGrade': 'By Product Grade',
+                      'form': 'By Form',
+                      'application': 'By Application',
+                      'distributionChannel': 'By Distribution Channel'
+                    }}
+                    multiple={false}
                   />
                 </div>
               </div>
@@ -1798,9 +1882,9 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                 <div className="mb-8">
                   <div className="flex items-center gap-3 mb-3">
                     <div className={`w-1 h-10 rounded-full ${isDark ? 'bg-cyan-accent' : 'bg-electric-blue'}`}></div>
-                    <InfoTooltip content="• Shows market attractiveness by region from 2025 to 2032\n• X-axis: CAGR Index (Compound Annual Growth Rate)\n• Y-axis: Market Share Index\n• Bubble size indicates incremental opportunity\n• Larger bubbles represent greater market potential">
+                    <InfoTooltip content="• Shows market attractiveness from 2025 to 2032\n• X-axis: CAGR Index (Compound Annual Growth Rate)\n• Y-axis: Market Share Index\n• Bubble size indicates incremental opportunity\n• Larger bubbles represent greater market potential\n• Select a product category above to see bubbles for each item in that category">
                       <h2 className="text-3xl font-bold text-text-primary-light dark:text-text-primary-dark cursor-help">
-                        Market Attractiveness, By Region, 2025-2032
+                        Market Attractiveness, 2025-2032
                       </h2>
                     </InfoTooltip>
                   </div>
@@ -1808,31 +1892,55 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                     Market attractiveness analysis by CAGR and Market Share Index
                   </p>
                 </div>
-                <div className={`p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[600px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
-                  <div className="mb-4 pb-4 border-b border-gray-200 dark:border-navy-light">
-                    <h3 className="text-lg font-bold text-electric-blue dark:text-cyan-accent mb-1">
-                      Market Attractiveness Analysis
-                    </h3>
-                    <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
-                      CAGR Index vs Market Share Index
-                    </p>
+
+                {!attractivenessFilters.selectedCategory ? (
+                  <div className={`p-6 rounded-xl shadow-lg ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
+                    <div className="flex items-center justify-center h-[400px]">
+                      <p className="text-text-secondary-light dark:text-text-secondary-dark text-lg">
+                        Please select a product category above to view the market attractiveness chart
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1 flex items-center justify-center min-h-0 pt-2">
-                    <BubbleChart
-                      data={bubbleChartData}
-                      xAxisLabel="CAGR Index"
-                      yAxisLabel="Market Share Index"
-                    />
+                ) : bubbleChartDataByCategory.length === 0 ? (
+                  <div className={`p-6 rounded-xl shadow-lg ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
+                    <div className="flex items-center justify-center h-[400px]">
+                      <p className="text-text-secondary-light dark:text-text-secondary-dark text-lg">
+                        No data available for the selected filters
+                      </p>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className={`p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[600px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
+                    <div className="mb-4 pb-4 border-b border-gray-200 dark:border-navy-light">
+                      <h3 className="text-lg font-bold text-electric-blue dark:text-cyan-accent mb-1">
+                        {attractivenessFilters.selectedCategory === 'pyrolysisMethod' && 'By Pyrolysis Method'}
+                        {attractivenessFilters.selectedCategory === 'sourceMaterial' && 'By Source Material'}
+                        {attractivenessFilters.selectedCategory === 'productGrade' && 'By Product Grade'}
+                        {attractivenessFilters.selectedCategory === 'form' && 'By Form'}
+                        {attractivenessFilters.selectedCategory === 'application' && 'By Application'}
+                        {attractivenessFilters.selectedCategory === 'distributionChannel' && 'By Distribution Channel'}
+                      </h3>
+                      <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                        CAGR Index vs Market Share Index
+                      </p>
+                    </div>
+                    <div className="flex-1 flex items-center justify-center min-h-0 pt-2">
+                      <BubbleChart
+                        data={bubbleChartDataByCategory}
+                        xAxisLabel="CAGR Index"
+                        yAxisLabel="Market Share Index"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}
 
-          {/* YoY / CAGR Analysis Tab */}
+          {/* YoY Analysis Tab */}
           {activeTab === 'yoy' && (
             <>
-              {/* Filters Section for YoY/CAGR Tab */}
+              {/* Filters Section for YoY Tab */}
               <div className={`p-8 rounded-2xl mb-8 shadow-xl ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-300'} relative`} style={{ overflow: 'visible' }}>
                 <div className="mb-6">
                   <div className="flex items-center gap-3 mb-2">
@@ -1842,7 +1950,7 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                     </h3>
                   </div>
                   <p className="text-base text-text-secondary-light dark:text-text-secondary-dark ml-4">
-                    Filter YoY and CAGR analysis data by region, product type, and country.
+                    Filter Y-o-Y analysis data by region, product type, and country.
                   </p>
                 </div>
                 
@@ -1858,12 +1966,6 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                     options={yoyFilterOptions.regions}
                   />
                   <FilterDropdown
-                    label="Product Type"
-                    value={yoyFilters.productType}
-                    onChange={(value) => setYoyFilters({ ...yoyFilters, productType: value as string[] })}
-                    options={yoyFilterOptions.productTypes}
-                  />
-                  <FilterDropdown
                     label="Country"
                     value={yoyFilters.country}
                     onChange={(value) => setYoyFilters({ ...yoyFilters, country: value as string[] })}
@@ -1873,6 +1975,12 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                       return acc
                     }, {} as Record<string, string>)}
                   />
+                  <FilterDropdown
+                    label="Product Type"
+                    value={yoyFilters.productType}
+                    onChange={(value) => setYoyFilters({ ...yoyFilters, productType: value as string[] })}
+                    options={yoyFilterOptions.productTypes}
+                  />
                 </div>
               </div>
 
@@ -1880,14 +1988,14 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                 <div className="mb-8">
                   <div className="flex items-center gap-3 mb-3">
                     <div className={`w-1 h-10 rounded-full ${isDark ? 'bg-cyan-accent' : 'bg-electric-blue'}`}></div>
-                    <InfoTooltip content="• Shows Year-over-Year (YoY) growth rate and Compound Annual Growth Rate (CAGR)\n• Toggle between YoY and CAGR views using the button\n• YoY shows year-to-year growth percentage\n• CAGR shows cumulative annual growth rate from the first year\n• Select regions or countries to generate separate charts for each (no summation)\n• Use filters to analyze specific regions, product types, or countries">
+                    <InfoTooltip content="• Shows Year-on-Year (Y-o-Y) growth rate\n• Toggle between Y-o-Y and CAGR views using the button\n• Y-o-Y shows year-to-year growth percentage\n• CAGR shows cumulative annual growth rate from the first year\n• Select regions or countries to generate separate charts for each (no summation)\n• Use filters to analyze specific regions, product types, or countries">
                       <h2 className="text-3xl font-bold text-text-primary-light dark:text-text-primary-dark cursor-help">
-                        Year-over-Year (YoY) & CAGR Analysis
+                        Year-on-Year (Y-o-Y) Analysis
                       </h2>
                     </InfoTooltip>
                   </div>
                   <p className="text-base text-text-secondary-light dark:text-text-secondary-dark ml-4 mb-2">
-                    Growth rate analysis with toggle between YoY and CAGR metrics. Separate charts for each selected country/region.
+                    Growth rate analysis for each selected country/region.
                   </p>
                 </div>
                 
@@ -1908,7 +2016,7 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                             {entity.label}
                           </h3>
                           <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
-                            Toggle between YoY and CAGR views
+                            Year-on-Year growth rate analysis
                           </p>
                         </div>
                         <div className="flex-1 flex items-center justify-center min-h-0 pt-2">

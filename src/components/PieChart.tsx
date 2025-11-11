@@ -34,7 +34,7 @@ export function PieChart({ data, dataKey, nameKey, colors = COLORS, title, isVol
       const actualName = dataEntry[nameKey] || item.name || 'Unknown'
       const value = item.value || 0
       const percentage = total > 0 ? (value / total) * 100 : 0
-      const valueLabel = isVolume ? 'Units' : 'Value'
+      const valueLabel = isVolume ? 'Tons' : 'Value'
       const nameLabel = nameKey === 'disease' ? 'Disease' : nameKey === 'region' ? 'Region' : nameKey === 'brand' ? 'Brand' : nameKey === 'channel' ? 'Channel' : nameKey === 'gender' ? 'Gender' : 'Category'
       const country = dataEntry.country
       
@@ -118,23 +118,41 @@ export function PieChart({ data, dataKey, nameKey, colors = COLORS, title, isVol
           ))}
         </Pie>
         <Tooltip content={<CustomTooltip />} />
-        <Legend 
-          wrapperStyle={{ 
-            color: isDark ? '#E2E8F0' : '#2D3748', 
+        <Legend
+          wrapperStyle={{
+            color: isDark ? '#E2E8F0' : '#2D3748',
             paddingTop: '15px',
-            fontSize: '12px',
-            fontWeight: 500
+            fontSize: '11px',
+            fontWeight: 500,
+            maxHeight: '120px',
+            overflowY: 'auto',
+            lineHeight: '1.6'
           }}
-          iconSize={12}
+          iconSize={10}
           iconType="circle"
+          layout="horizontal"
+          align="center"
+          verticalAlign="bottom"
           formatter={(value, entry: any) => {
             // Get the actual name from the payload (data entry)
             const payload = entry.payload
             const actualName = payload && payload[nameKey] ? payload[nameKey] : value
             const percentage = total > 0 ? ((payload && payload[dataKey] ? payload[dataKey] : 0) / total) * 100 : 0
+
+            // Truncate long names
+            const displayName = actualName.length > 25 ? actualName.substring(0, 25) + '...' : actualName
+
             return (
-              <span style={{ fontSize: '12px', fontWeight: 500 }}>
-                {`${actualName} (${percentage.toFixed(1)}%)`}
+              <span style={{
+                fontSize: '11px',
+                fontWeight: 500,
+                display: 'inline-block',
+                maxWidth: '180px',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }} title={actualName}>
+                {`${displayName} (${percentage.toFixed(1)}%)`}
               </span>
             )
           }}

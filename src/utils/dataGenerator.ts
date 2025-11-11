@@ -3,13 +3,13 @@ interface ShovelMarketData {
   year: number
   region: string
   country: string
-  productType: string
-  bladeMaterial: string
-  handleLength: string
-  application: string
-  endUser: string
-  distributionChannelType: string
-  distributionChannel: string
+  productType: string // By Pyrolysis Method
+  bladeMaterial: string // By Source Material
+  handleLength: string // By Product Grade
+  application: string // By Form
+  endUser: string // By Application (main category)
+  distributionChannelType: string // By Distribution Channel (Direct/Indirect)
+  distributionChannel: string // By Application Subtype (based on endUser/Application)
   brand: string
   company: string
   price: number
@@ -27,24 +27,55 @@ const generateComprehensiveData = (): ShovelMarketData[] => {
   const years = Array.from({ length: 15 }, (_, i) => 2021 + i)
   const regions = ["North America", "Europe", "APAC", "Latin America", "Middle East", "Africa"]
   
-  const productTypes = ["Digging Shovel", "Snow Shovel", "Trenching Shovel", "Scoop Shovel", "Others"]
-  const bladeMaterials = ["Carbon Steel", "Stainless Steel", "Aluminum", "Polycarbonate", "Others"]
-  const handleLengths = ["Short Handle", "Medium Handle", "Long Handle", "Adjustable Handle"]
-  const applications = [
-    "Construction & Infrastructure",
-    "Agriculture & Landscaping",
-    "Mining & Quarrying",
-    "Forestry",
-    "Household & Gardening",
-    "Snow Removal",
-    "Utility & Road Maintenance"
-  ]
-  const endUsers = ["Commercial/Industrial Users", "Residential Users"]
-  
-  const distributionChannelTypes = ["Offline", "Online"]
-  const offlineChannels = ["Hardware Stores", "Specialty Garden Centers", "Agricultural Supply Stores"]
-  const onlineChannels = ["Ecommerce Website", "Brand's/Company's Own Website"]
-  
+  // New Wood Vinegar Market filters
+  const productTypes = ["Slow Pyrolysis", "Fast Pyrolysis", "Intermediate Pyrolysis", "Dry Distillation"]
+  const bladeMaterials = ["Hardwood", "Softwood", "Bamboo", "Coconut Shell / Palm Waste", "Fruitwood", "Others (Sawdust, Crop Residue, Mixed Biomass)"]
+  const handleLengths = ["Agricultural Grade", "Industrial Grade", "Pharmaceutical / Food Grade"]
+  const applications = ["Liquid", "Powder / Solid", "Concentrate / Distilled"] // By Form
+  const endUsers = [
+    "Agriculture & Farming",
+    "Animal Feed & Husbandry",
+    "Food & Beverage",
+    "Pharmaceuticals & Healthcare",
+    "Personal Care & Cosmetics",
+    "Activated Carbon & Charcoal Production",
+    "Others (Bioenergy & Chemicals etc.)"
+  ] // By Application (main category)
+
+  // Application subtypes mapping
+  const applicationSubtypes: Record<string, string[]> = {
+    "Agriculture & Farming": [
+      "Bio-Pesticide",
+      "Soil Conditioner",
+      "Plant Growth Promoter",
+      "Compost Accelerator"
+    ],
+    "Animal Feed & Husbandry": [
+      "Feed Additive",
+      "Odor Control"
+    ],
+    "Food & Beverage": [
+      "Natural Flavoring"
+    ],
+    "Pharmaceuticals & Healthcare": [
+      "Antiseptic",
+      "Detoxification Agent"
+    ],
+    "Personal Care & Cosmetics": [
+      "Skincare Products",
+      "Deodorants"
+    ],
+    "Activated Carbon & Charcoal Production": [
+      "Carbonization Aid",
+      "Quality Enhancer"
+    ],
+    "Others (Bioenergy & Chemicals etc.)": []
+  }
+
+  const distributionChannelTypes = ["Direct", "Indirect (Via Distributors)"]
+  const offlineChannels = ["Direct"]
+  const onlineChannels = ["Indirect (Via Distributors)"]
+
   const brands = [
     "Fiskars", "Bully Tools", "Razor-Back", "Truper", "Ames", 
     "Spear & Jackson", "Radius Garden", "Seymour", "Union Tools", "Garant"
@@ -57,47 +88,48 @@ const generateComprehensiveData = (): ShovelMarketData[] => {
   ]
   
   const countryMap: Record<string, string[]> = {
-    "North America": ["USA", "Canada", "Mexico"],
-    "Europe": ["Germany", "UK", "France", "Spain", "Italy", "Poland", "Romania"],
-    "APAC": ["Japan", "Australia", "Singapore", "China", "India", "Thailand", "Pakistan", "Bangladesh", "Nepal"],
-    "Latin America": ["Brazil", "Argentina", "Chile", "Colombia", "Peru"],
-    "Middle East": ["UAE", "Saudi Arabia", "Israel", "Egypt", "Iraq"],
-    "Africa": ["South Africa", "Nigeria", "Kenya", "Ethiopia", "Ghana"]
+    "North America": ["U.S.", "Canada"],
+    "Europe": ["U.K.", "Germany", "Italy", "France", "Spain", "Russia"],
+    "APAC": ["China", "India", "Japan", "South Korea", "Australia"],
+    "Latin America": ["Brazil", "Argentina", "Mexico", "Peru"],
+    "Middle East": ["GCC", "Israel"],
+    "Africa": ["South Africa"]
   }
   
-  // Product type multipliers for variation
+  // Product type multipliers for variation (By Pyrolysis Method)
   const productTypeMultipliers: Record<string, { price: number; volume: number; cagr: number }> = {
-    'Digging Shovel': { price: 1.0, volume: 1.2, cagr: 1.1 },
-    'Snow Shovel': { price: 0.9, volume: 1.5, cagr: 1.2 },
-    'Trenching Shovel': { price: 1.2, volume: 0.8, cagr: 1.0 },
-    'Scoop Shovel': { price: 0.8, volume: 1.1, cagr: 0.9 },
-    'Others': { price: 1.1, volume: 0.9, cagr: 1.0 }
+    'Slow Pyrolysis': { price: 1.0, volume: 1.2, cagr: 1.1 },
+    'Fast Pyrolysis': { price: 1.1, volume: 1.3, cagr: 1.2 },
+    'Intermediate Pyrolysis': { price: 1.05, volume: 1.1, cagr: 1.05 },
+    'Dry Distillation': { price: 0.9, volume: 1.0, cagr: 1.0 }
   }
-  
-  // Blade material multipliers
+
+  // Blade material multipliers (By Source Material)
   const bladeMaterialMultipliers: Record<string, { price: number; volume: number }> = {
-    'Carbon Steel': { price: 0.8, volume: 1.3 },
-    'Stainless Steel': { price: 1.3, volume: 1.0 },
-    'Aluminum': { price: 1.1, volume: 0.9 },
-    'Polycarbonate': { price: 0.9, volume: 1.1 },
-    'Others': { price: 1.0, volume: 1.0 }
+    'Hardwood': { price: 1.2, volume: 1.3 },
+    'Softwood': { price: 1.0, volume: 1.4 },
+    'Bamboo': { price: 1.1, volume: 1.2 },
+    'Coconut Shell / Palm Waste': { price: 0.9, volume: 1.1 },
+    'Fruitwood': { price: 1.3, volume: 0.9 },
+    'Others (Sawdust, Crop Residue, Mixed Biomass)': { price: 0.8, volume: 1.0 }
   }
-  
-  // Application multipliers
+
+  // Application multipliers (By Form)
   const applicationMultipliers: Record<string, { volume: number; price: number }> = {
-    'Construction & Infrastructure': { volume: 1.4, price: 1.2 },
-    'Agriculture & Landscaping': { volume: 1.3, price: 1.0 },
-    'Mining & Quarrying': { volume: 0.7, price: 1.4 },
-    'Forestry': { volume: 0.8, price: 1.1 },
-    'Household & Gardening': { volume: 1.5, price: 0.8 },
-    'Snow Removal': { volume: 1.2, price: 0.9 },
-    'Utility & Road Maintenance': { volume: 1.0, price: 1.1 }
+    'Liquid': { volume: 1.5, price: 1.2 },
+    'Powder / Solid': { volume: 1.0, price: 0.9 },
+    'Concentrate / Distilled': { volume: 0.8, price: 1.4 }
   }
-  
-  // End user multipliers
+
+  // End user multipliers (By Application category)
   const endUserMultipliers: Record<string, { volume: number; price: number }> = {
-    'Commercial/Industrial Users': { volume: 1.2, price: 1.3 },
-    'Residential Users': { volume: 1.5, price: 0.8 }
+    'Agriculture & Farming': { volume: 1.5, price: 1.0 },
+    'Animal Feed & Husbandry': { volume: 1.2, price: 1.1 },
+    'Food & Beverage': { volume: 0.8, price: 1.4 },
+    'Pharmaceuticals & Healthcare': { volume: 0.7, price: 1.6 },
+    'Personal Care & Cosmetics': { volume: 1.0, price: 1.3 },
+    'Activated Carbon & Charcoal Production': { volume: 1.3, price: 1.1 },
+    'Others (Bioenergy & Chemicals etc.)': { volume: 1.0, price: 1.0 }
   }
   
   // Region-specific multipliers
@@ -147,12 +179,15 @@ const generateComprehensiveData = (): ShovelMarketData[] => {
                 for (const endUser of endUsers) {
                   const userMult = endUserMultipliers[endUser]
                   
-                  // Determine distribution channel type and channel
-                  const isOnline = seededRandom() > 0.6 // 40% online, 60% offline
-                  const distributionChannelType = isOnline ? 'Online' : 'Offline'
-                  const distributionChannel = isOnline
-                    ? onlineChannels[Math.floor(seededRandom() * onlineChannels.length)]
-                    : offlineChannels[Math.floor(seededRandom() * offlineChannels.length)]
+                  // Determine distribution channel type (now Direct/Indirect)
+                  const isDirect = seededRandom() > 0.5 // 50% direct, 50% indirect
+                  const distributionChannelType = isDirect ? 'Direct' : 'Indirect (Via Distributors)'
+
+                  // Get application subtype based on the endUser (application category)
+                  const subtypes = applicationSubtypes[endUser] || []
+                  const distributionChannel = subtypes.length > 0
+                    ? subtypes[Math.floor(seededRandom() * subtypes.length)]
+                    : endUser // fallback to category if no subtypes
                   
                   const brand = brands[Math.floor(seededRandom() * brands.length)]
                   const brandMult = brandPremiumMap[brand] || 1.0
