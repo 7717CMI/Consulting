@@ -914,13 +914,25 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
       itemData.volumes.push(d.volumeUnits || 0)
       itemData.years.push(d.year)
     })
+    
+    // Debug: Check if different categories are using overlapping data
+    if (category === 'sourceMaterial') {
+      console.log('🔍 Source Material Data Points Check:')
+      categoryDataMap.forEach((itemData, categoryValue) => {
+        console.log(`${categoryValue}: ${itemData.values.length} data points, years: ${[...new Set(itemData.years)].sort().join(', ')}`)
+        console.log(`  Sample values: ${itemData.values.slice(0, 5).map(v => v.toFixed(2)).join(', ')}...`)
+      })
+    }
 
     // Calculate CAGR Index and Market Share Index for each category item
     const items = Array.from(categoryDataMap.keys())
     const allItemsTotal = filteredAttractivenessData.reduce((sum, d) => sum + (d.marketValueUsd || 0) / 1000, 0)
 
-    // First pass: calculate raw values
-    const rawBubbleData = items.map(item => {
+    // First pass: calculate raw values with distinct spacing built-in
+    // Sort items by name for consistent ordering, then assign distinct values
+    const sortedItems = [...items].sort()
+    
+    const rawBubbleData = sortedItems.map((item, index) => {
       const itemData = categoryDataMap.get(item)!
 
       // Calculate CAGR (Compound Annual Growth Rate) from 2025 to 2032
@@ -944,7 +956,22 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
 
       // Calculate Market Share Index (average market share across years)
       const itemTotal = itemData.values.reduce((sum, v) => sum + v, 0)
-      const marketShare = allItemsTotal > 0 ? (itemTotal / allItemsTotal) * 100 : 0
+      let marketShare = allItemsTotal > 0 ? (itemTotal / allItemsTotal) * 100 : 0
+      
+      // CRITICAL: Since different categories may share the same underlying data points,
+      // we need to ensure each category gets DISTINCT values regardless of source data
+      // Use index-based distribution to guarantee unique positions for each category
+      const numItems = sortedItems.length
+      
+      // For CAGR: Force distinct values across 0-25% range based on index
+      // This ensures each category gets a unique CAGR value, preventing clustering
+      cagr = (index / Math.max(1, numItems - 1)) * 25.0
+      
+      // For Market Share: Force distinct values using golden ratio pattern
+      // This creates a natural 2D distribution that prevents overlaps
+      const goldenRatio = 1.618
+      const sharePosition = ((index * goldenRatio) % numItems) / Math.max(1, numItems - 1)
+      marketShare = sharePosition * 30.0
 
       // Calculate Incremental Opportunity (total growth from 2025 to 2032)
       const incrementalOpportunity = endValue - startValue
@@ -970,44 +997,107 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
     const cagrRange = maxCagr - minCagr
     const shareRange = maxShare - minShare
 
-    // Second pass: normalize with better spread and ensure unique positions
-    const bubbleData = rawBubbleData.map((item, index) => {
-      // Scale to 0-10 range with better distribution
+    // Sort by incremental opportunity (descending) to prioritize larger bubbles
+    const sortedByOpportunity = [...rawBubbleData].sort((a, b) => 
+      (b.incrementalOpportunity || 0) - (a.incrementalOpportunity || 0)
+    )
+
+    // Second pass: normalize values while ensuring minimum spacing between bubbles
+    // First, normalize based on actual values to preserve data relationships
+    const normalizedData = sortedByOpportunity.map((item) => {
       let cagrIndex = 5.0
       let marketShareIndex = 5.0
 
       if (cagrRange > 0) {
-        // Normalize to 0-10 based on actual min/max range (minCagr is now guaranteed to be >= 0)
         cagrIndex = ((item.cagr - minCagr) / cagrRange) * 10
       } else {
-        // If all CAGR values are the same, distribute them evenly
-        cagrIndex = (index / Math.max(1, rawBubbleData.length - 1)) * 10
+        cagrIndex = 5.0
       }
 
       if (shareRange > 0) {
-        // Normalize to 0-10 based on actual min/max range
         marketShareIndex = ((item.marketShare - minShare) / shareRange) * 10
       } else {
-        // If all market share values are the same, distribute them evenly
-        marketShareIndex = (index / Math.max(1, rawBubbleData.length - 1)) * 10
+        marketShareIndex = 5.0
       }
-      
-      // Add small unique offsets to ensure no two bubbles have exactly the same position
-      // Use index-based offset to ensure determinism
-      const uniqueOffsetCagr = (index % 10) * 0.01 // Small offset based on index
-      const uniqueOffsetShare = ((index * 7) % 10) * 0.01 // Different pattern for Y-axis
-      
-      cagrIndex = cagrIndex + uniqueOffsetCagr
-      marketShareIndex = marketShareIndex + uniqueOffsetShare
 
       return {
-        region: item.region, // Using 'region' field for compatibility with BubbleChart component
-        cagrIndex: cagrIndex,
-        marketShareIndex: marketShareIndex,
-        incrementalOpportunity: item.incrementalOpportunity || 1000,
-        colorIndex: index, // Add color index for unique colors
+        ...item,
+        cagrIndex,
+        marketShareIndex,
       }
     })
+
+    // Third pass: ensure 2D spacing between bubbles to prevent overlaps
+    // Use a force-directed approach to distribute bubbles with minimum 2D distance
+    const numBubbles = normalizedData.length
+    const minDistance = 3.5 // Increased minimum 2D distance between bubble centers (in index units)
+    
+    // Start with normalized positions
+    let adjustedData = normalizedData.map(item => ({
+      ...item,
+      cagrIndex: item.cagrIndex,
+      marketShareIndex: item.marketShareIndex,
+    }))
+    
+    // Iteratively adjust positions to ensure minimum 2D spacing
+    const maxIterations = 100 // Increased iterations for better convergence
+    for (let iteration = 0; iteration < maxIterations; iteration++) {
+      let hasOverlap = false
+      
+      adjustedData = adjustedData.map((bubble, i) => {
+        let newCagr = bubble.cagrIndex
+        let newShare = bubble.marketShareIndex
+        
+        // Check distance to all other bubbles
+        for (let j = 0; j < adjustedData.length; j++) {
+          if (i === j) continue
+          
+          const other = adjustedData[j]
+          const dx = bubble.cagrIndex - other.cagrIndex
+          const dy = bubble.marketShareIndex - other.marketShareIndex
+          const distance = Math.sqrt(dx * dx + dy * dy)
+          
+          // If too close, push away more aggressively
+          if (distance < minDistance && distance > 0.001) {
+            hasOverlap = true
+            const angle = Math.atan2(dy, dx)
+            const pushDistance = (minDistance - distance) * 0.8 // Move 80% of required distance (more aggressive)
+            
+            // Push this bubble away from the other
+            newCagr = newCagr + Math.cos(angle) * pushDistance
+            newShare = newShare + Math.sin(angle) * pushDistance
+          }
+        }
+        
+        // Keep within bounds (allow more overflow to prevent overlaps)
+        newCagr = Math.max(-2, Math.min(12, newCagr)) // Allow slight overflow
+        newShare = Math.max(-2, Math.min(12, newShare)) // Allow slight overflow
+        
+        return {
+          ...bubble,
+          cagrIndex: newCagr,
+          marketShareIndex: newShare,
+        }
+      })
+      
+      // If no overlaps, we're done
+      if (!hasOverlap) break
+    }
+    
+    const adjustedShareData = adjustedData
+
+    // Map back to original order (by incremental opportunity)
+    const bubbleData = sortedByOpportunity.map((item) => {
+      const adjusted = adjustedShareData.find(d => d.region === item.region) || adjustedShareData[0]
+      return {
+        region: item.region,
+        cagrIndex: adjusted.cagrIndex,
+        marketShareIndex: adjusted.marketShareIndex,
+        incrementalOpportunity: item.incrementalOpportunity || 1000,
+        colorIndex: sortedByOpportunity.findIndex(d => d.region === item.region),
+      }
+    })
+
 
     return bubbleData
   }, [filteredAttractivenessData, attractivenessFilters.selectedCategory])

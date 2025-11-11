@@ -122,8 +122,34 @@ export function BubbleChart({
       z: bubble.size,
     }))
     
-    // Iterate multiple times to resolve all overlaps (increased iterations for better resolution)
-    const maxIterations = 15
+    // Get the large bubble reference for special handling
+    const largeBubble = adjustedBubbles[maxOpportunityIndex]
+    
+    // Initial pass: push smaller bubbles away from large bubble's area if they're too close
+    adjustedBubbles = adjustedBubbles.map((bubble, index) => {
+      if (index === maxOpportunityIndex) return bubble
+      
+      const dx = bubble.cagrIndex - largeBubble.cagrIndex
+      const dy = bubble.marketShareIndex - largeBubble.marketShareIndex
+      const distance = Math.sqrt(dx * dx + dy * dy)
+      const minDistanceFromLarge = (bubble.radius + largeBubble.radius) * 1.6 // 60% buffer
+      
+      if (distance < minDistanceFromLarge && distance > 0.001) {
+        // Push bubble away from large bubble towards lower-left
+        const angle = Math.atan2(dy, dx)
+        const pushDistance = minDistanceFromLarge - distance + 1.0 // Extra push
+        return {
+          ...bubble,
+          cagrIndex: bubble.cagrIndex - Math.abs(Math.cos(angle)) * pushDistance * 0.8,
+          marketShareIndex: bubble.marketShareIndex - Math.abs(Math.sin(angle)) * pushDistance * 0.8,
+        }
+      }
+      return bubble
+    })
+    
+    // Iterate multiple times to resolve all overlaps (minimal adjustment since data is pre-spaced)
+    // Only adjust if there's a real overlap based on actual bubble sizes
+    const maxIterations = 5 // Further reduced iterations since data is already well-spaced
     for (let iteration = 0; iteration < maxIterations; iteration++) {
       let hasOverlap = false
       
@@ -143,33 +169,37 @@ export function BubbleChart({
           
           const otherBubble = adjustedBubbles[i]
           const otherRadius = otherBubble.radius
-          // Increased buffer to 30% to ensure no overlaps (was 25%)
-          const otherMinDistance = (bubbleRadius + otherRadius) * 1.30 // Combined radius + 30% buffer
+          
+          // Use actual bubble sizes for collision detection (minimal buffer since data is pre-spaced)
+          const isLargeBubble = i === maxOpportunityIndex
+          const bufferMultiplier = isLargeBubble ? 1.15 : 1.05 // Very minimal buffer - only for actual overlaps
+          const otherMinDistance = (bubbleRadius + otherRadius) * bufferMultiplier
           
           // Calculate distance between bubble centers
           const dx = adjustedCagr - otherBubble.cagrIndex
           const dy = adjustedShare - otherBubble.marketShareIndex
           const distance = Math.sqrt(dx * dx + dy * dy)
           
-          // If bubbles are too close, adjust position
+          // Only adjust if there's a real overlap (bubbles are actually touching/overlapping)
+          // Use stricter threshold - only move if bubbles are actually overlapping
           if (distance < otherMinDistance && distance > 0.001) {
             hasOverlap = true
             
             // Calculate angle between bubbles
             const angle = Math.atan2(dy, dx)
             
-            // Move this bubble away from the other bubble
+            // Move this bubble away from the other bubble (very minimal since data is pre-spaced)
             const requiredDistance = otherMinDistance
-            // Move 60% of required distance per iteration for faster convergence (was 50%)
-            const moveDistance = (requiredDistance - distance) * 0.6
+            const moveMultiplier = isLargeBubble ? 0.30 : 0.25 // Very minimal movement
+            const moveDistance = (requiredDistance - distance) * moveMultiplier
             
             // Adjust position away from the other bubble
             adjustedCagr = adjustedCagr + Math.cos(angle) * moveDistance
             adjustedShare = adjustedShare + Math.sin(angle) * moveDistance
             
-            // Keep within reasonable bounds (allow some overflow for padding)
-            adjustedCagr = Math.max(cagrMin - cagrRange * 0.5, Math.min(cagrMax + cagrRange * 0.5, adjustedCagr))
-            adjustedShare = Math.max(shareMin - shareRange * 0.5, Math.min(shareMax + shareRange * 0.5, adjustedShare))
+            // Keep within reasonable bounds
+            adjustedCagr = Math.max(cagrMin - cagrRange * 0.2, Math.min(cagrMax + cagrRange * 0.2, adjustedCagr))
+            adjustedShare = Math.max(shareMin - shareRange * 0.2, Math.min(shareMax + shareRange * 0.2, adjustedShare))
           }
         }
         
@@ -203,10 +233,10 @@ export function BubbleChart({
   // Calculate padding: use a percentage of the range plus bubble radius to ensure proper spacing
   // Increased padding to reduce overlap and ensure largest bubble is fully visible
   // Convert bubble radius to index units (approximate: 1 index unit ≈ chart width/10)
-  // Use 60-70% of range plus buffer for bubble radius to ensure no clipping and better spacing
-  // More padding needed for the very large bubble in upper right
-  const cagrPadding = Math.max(4.0, (cagrRange * 0.65) + (maxBubbleRadius / 40)) // 65% of range + bubble buffer
-  const sharePadding = Math.max(2.0, (shareRange * 0.65) + (maxBubbleRadius / 40)) // 65% of range + bubble buffer
+  // Use 70-80% of range plus buffer for bubble radius to ensure no clipping and better spacing
+  // More padding needed for the very large bubble in upper right and to prevent overlaps
+  const cagrPadding = Math.max(5.0, (cagrRange * 0.75) + (maxBubbleRadius / 35)) // 75% of range + bubble buffer
+  const sharePadding = Math.max(3.0, (shareRange * 0.75) + (maxBubbleRadius / 35)) // 75% of range + bubble buffer
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
