@@ -66,20 +66,32 @@ export function SegmentGroupedBarChart({
       const unit = unitMatch ? unitMatch[1] : yAxisLabel.includes('Tons') ? 'Tons' : ''
       
       return (
-        <div className={`p-4 rounded-lg border-2 shadow-lg ${
-          isDark 
-            ? 'bg-navy-card border-electric-blue text-white' 
-            : 'bg-white border-electric-blue text-gray-900'
-        }`}>
-          <p className="font-bold text-base mb-2">{xAxisLabel}: {label}</p>
-          <div className="flex items-center gap-2">
+        <div 
+          className={`p-3 rounded-lg border-2 shadow-xl ${
+            isDark 
+              ? 'bg-navy-card border-electric-blue text-white' 
+              : 'bg-white border-electric-blue text-gray-900'
+          }`}
+          style={{ 
+            minWidth: '250px',
+            maxWidth: '320px',
+            whiteSpace: 'normal',
+            wordWrap: 'break-word'
+          }}
+        >
+          <p className="font-bold text-sm mb-2 break-words">{xAxisLabel}: {label}</p>
+          <div className="flex items-start gap-2 flex-wrap">
             <div 
-              className="w-4 h-4 rounded" 
+              className="w-3 h-3 rounded flex-shrink-0 mt-0.5" 
               style={{ backgroundColor: hoveredItem.color }}
             />
-            <span className="font-semibold text-base">{hoveredItem.name}:</span>
-            <span className="font-bold text-base">{formatWithCommas(hoveredItem.value, 2)}</span>
-            {unit && <span className="text-sm text-gray-600 dark:text-gray-400 ml-1">({unit})</span>}
+            <div className="flex-1 min-w-0">
+              <span className="font-semibold text-sm block break-words">{hoveredItem.name}:</span>
+              <div className="flex items-baseline gap-2 mt-0.5 flex-wrap">
+                <span className="font-bold text-sm">{formatWithCommas(hoveredItem.value, 2)}</span>
+                {unit && <span className="text-xs text-gray-600 dark:text-gray-400">({unit})</span>}
+              </div>
+            </div>
           </div>
         </div>
       )
@@ -105,7 +117,7 @@ export function SegmentGroupedBarChart({
       <RechartsBarChart
         data={data}
         margin={{
-          top: 50,
+          top: 20,
           right: 40,
           left: 100,
           bottom: 80,
@@ -142,7 +154,7 @@ export function SegmentGroupedBarChart({
           width={90}
           tick={{ fill: isDark ? '#E2E8F0' : '#2D3748' }}
           tickMargin={15}
-          domain={[0, 'auto']}
+          domain={[0, (dataMax: number) => Math.ceil(dataMax * 1.1)]}
           allowDataOverflow={false}
           label={{
             value: yAxisLabel,
@@ -161,6 +173,9 @@ export function SegmentGroupedBarChart({
           content={<CustomTooltip />}
           cursor={{ fill: 'transparent' }}
           shared={false}
+          wrapperStyle={{ zIndex: 1000, outline: 'none', pointerEvents: 'none' }}
+          allowEscapeViewBox={{ x: false, y: false }}
+          isAnimationActive={false}
         />
         <Legend
           wrapperStyle={{

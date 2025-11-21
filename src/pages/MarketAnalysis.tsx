@@ -29,7 +29,11 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({
     year: [] as number[],
-    country: ['U.S.', 'Canada'] as string[],
+    byRegion: [] as string[], // Hierarchical filter for "By Region" - stores selected countries
+    byServiceType: [] as string[], // Hierarchical filter for "By Service Type"
+    byEndUser: [] as string[], // Hierarchical filter for "By End User"
+    byDeliveryChannel: [] as string[], // Hierarchical filter for "By Delivery Channel"
+    byBusinessModel: [] as string[], // Hierarchical filter for "By Business Model"
     productType: [] as string[],
     bladeMaterial: [] as string[],
     handleLength: [] as string[],
@@ -50,20 +54,19 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
   const [attractivenessFilters, setAttractivenessFilters] = useState({
     region: ['North America'] as string[],
     country: ['U.S.', 'Canada'] as string[],
-    selectedCategory: '' as string, // Which category to show bubbles for
-    pyrolysisMethod: [] as string[],
-    sourceMaterial: [] as string[],
-    productGrade: [] as string[],
-    form: [] as string[],
-    application: [] as string[],
-    distributionChannel: [] as string[],
+    segmentType: '' as string, // Which segment type: By Service Type, By End User, etc.
+    selectedCategory: '' as string, // Which specific category within the segment type
+    serviceType: [] as string[],
+    endUserType: [] as string[],
+    deliveryChannel: [] as string[],
+    businessModel: [] as string[],
   })
 
   // Separate filters for YoY/CAGR tab
   const [yoyFilters, setYoyFilters] = useState({
     region: [] as string[],
-    productType: [] as string[],
     country: [] as string[],
+    segmentType: [] as string[], // Changed from productType to segmentType
   })
 
   useEffect(() => {
@@ -94,18 +97,15 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                 : availableYears.length > 0
                   ? [availableYears[availableYears.length - 1]]
                   : []
-          const defaultCountries = availableCountries.length >= 2 && availableCountries.includes('U.S.') && availableCountries.includes('Canada')
-            ? ['U.S.', 'Canada']
-            : availableCountries.length >= 2
-              ? availableCountries.slice(0, 2)
-              : availableCountries.length === 1
-                ? [availableCountries[0]]
-                : []
           
-          // Select 2-3 years by default and set default countries
+          // Select 2-3 years by default and set default values for new filters
           setFilters({
             year: defaultYears,
-            country: defaultCountries,
+            byRegion: ['U.S.', 'Canada'], // Default: North America countries
+            byServiceType: ['Personal Branding & Executive Consulting', 'Digital Presence & Branding Consulting'], // Default: 2 service types
+            byEndUser: ['Senior Executives & Professionals', 'Corporate Teams (HR, Sales, Leadership)'], // Default: 2 end user types
+            byDeliveryChannel: ['In-Person Consulting', 'Virtual / Online Consulting'], // Default: 2 delivery channels
+            byBusinessModel: ['Premium One-on-One Consulting', 'Corporate Contracts / Retainers'], // Default: 2 business models
             productType: [],
             bladeMaterial: [],
             handleLength: [],
@@ -116,17 +116,11 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
             marketEvaluation: 'By Value',
           })
           
-          // Set default for Y-o-Y filters: one country and all product types
-          const defaultYoyCountry = availableCountries.length > 0 && availableCountries.includes('U.S.')
-            ? ['U.S.']
-            : availableCountries.length > 0
-              ? [availableCountries[0]]
-              : []
-          
+          // Set default for Y-o-Y filters: North America region and U.S., Canada countries
           setYoyFilters({
-            region: [],
-            country: defaultYoyCountry,
-            productType: availableProductTypes.length > 0 ? availableProductTypes : []
+            region: ['North America'],
+            country: ['U.S.', 'Canada'],
+            segmentType: [] // Default to all segment types
           })
         }, 0)
       } catch (error) {
@@ -300,9 +294,24 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
     if (filters.year.length > 0) {
       filtered = filtered.filter(d => filters.year.includes(d.year))
     }
-    if (filters.country.length > 0) {
-      filtered = filtered.filter(d => filters.country.includes(d.country))
+    // By Region filter - filters by selected countries from the hierarchical dropdown
+    if (filters.byRegion.length > 0) {
+      filtered = filtered.filter(d => filters.byRegion.includes(d.country))
     }
+    // New filters
+    if (filters.byServiceType.length > 0) {
+      filtered = filtered.filter(d => filters.byServiceType.includes(d.serviceType))
+    }
+    if (filters.byEndUser.length > 0) {
+      filtered = filtered.filter(d => filters.byEndUser.includes(d.endUserType))
+    }
+    if (filters.byDeliveryChannel.length > 0) {
+      filtered = filtered.filter(d => filters.byDeliveryChannel.includes(d.deliveryChannel))
+    }
+    if (filters.byBusinessModel.length > 0) {
+      filtered = filtered.filter(d => filters.byBusinessModel.includes(d.businessModel))
+    }
+    // Old filters
     if (filters.productType.length > 0) {
       filtered = filtered.filter(d => filters.productType.includes(d.productType))
     }
@@ -344,27 +353,19 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
   const analysisData = useMemo(() => {
     if (filteredData.length === 0) {
       return {
-        productTypeChartData: [],
-        bladeMaterialChartData: [],
-        handleLengthChartData: [],
-        applicationChartData: [],
-        endUserChartData: [],
-        countryChartData: [],
+        serviceTypeChartData: [],
+        endUserTypeChartData: [],
+        deliveryChannelChartData: [],
+        businessModelChartData: [],
         regionCountryPercentageChartData: [],
-        productTypes: [] as string[],
-        bladeMaterials: [] as string[],
-        handleLengths: [] as string[],
-        applications: [] as string[],
-        endUsers: [] as string[],
-        countries: [] as string[],
-        bladeMaterialStackedData: { chartData: [], segments: [] },
-        productTypeStackedData: { chartData: [], segments: [] },
-        handleLengthStackedData: { chartData: [], segments: [] },
-        applicationStackedData: { chartData: [], segments: [] },
-        endUserStackedData: { chartData: [], segments: [] },
-        distributionChannelTypeStackedData: { chartData: [], segments: [] },
-        offlineChannelStackedData: { chartData: [], segments: [] },
-        onlineChannelStackedData: { chartData: [], segments: [] },
+        serviceTypes: [] as string[],
+        endUserTypes: [] as string[],
+        deliveryChannels: [] as string[],
+        businessModels: [] as string[],
+        serviceTypeStackedData: { chartData: [], segments: [] },
+        endUserTypeStackedData: { chartData: [], segments: [] },
+        deliveryChannelStackedData: { chartData: [], segments: [] },
+        businessModelStackedData: { chartData: [], segments: [] },
       }
     }
 
@@ -444,59 +445,35 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
       return { chartData, segments: activeSegments }
     }
 
-    // Product Type Chart - use selected filters to show all selected options
-    const productTypeData = generateSegmentChartData(
-      'productType', 
-      (d) => d.productType || '',
-      filters.productType.length > 0 ? filters.productType : undefined
+    // Service Type Chart - use selected filters to show all selected options
+    const serviceTypeData = generateSegmentChartData(
+      'serviceType', 
+      (d) => d.serviceType || '',
+      filters.byServiceType.length > 0 ? filters.byServiceType : undefined
     )
 
-    // Blade Material Chart - use selected filters to show all selected options
-    const bladeMaterialData = generateSegmentChartData(
-      'bladeMaterial', 
-      (d) => d.bladeMaterial || '',
-      filters.bladeMaterial.length > 0 ? filters.bladeMaterial : undefined
+    // End User Type Chart - use selected filters to show all selected options
+    const endUserTypeData = generateSegmentChartData(
+      'endUserType', 
+      (d) => d.endUserType || '',
+      filters.byEndUser.length > 0 ? filters.byEndUser : undefined
     )
 
-    // Handle Length Chart - use selected filters to show all selected options
-    const handleLengthData = generateSegmentChartData(
-      'handleLength', 
-      (d) => d.handleLength || '',
-      filters.handleLength.length > 0 ? filters.handleLength : undefined
+    // Delivery Channel Chart - use selected filters to show all selected options
+    const deliveryChannelData = generateSegmentChartData(
+      'deliveryChannel', 
+      (d) => d.deliveryChannel || '',
+      filters.byDeliveryChannel.length > 0 ? filters.byDeliveryChannel : undefined
     )
 
-    // Application Chart - use selected filters to show all selected options
-    const applicationData = generateSegmentChartData(
-      'application', 
-      (d) => d.application || '',
-      filters.application.length > 0 ? filters.application : undefined
+    // Business Model Chart - use selected filters to show all selected options
+    const businessModelData = generateSegmentChartData(
+      'businessModel', 
+      (d) => d.businessModel || '',
+      filters.byBusinessModel.length > 0 ? filters.byBusinessModel : undefined
     )
 
-    // End User Chart - use selected filters to show all selected options
-    const endUserData = generateSegmentChartData(
-      'endUser', 
-      (d) => d.endUser || '',
-      filters.endUser.length > 0 ? filters.endUser : undefined
-    )
 
-    // Country Chart - use selected filters to show all selected options
-    const countriesFromData = [...new Set(filteredData.map(d => d.country))].filter(Boolean).sort()
-    const countries = filters.country.length > 0 
-      ? filters.country.filter(c => c).sort() 
-      : countriesFromData
-    const countryMap = new Map<string, number>()
-    filteredData.forEach(d => {
-      const key = `${d.year}-${d.country}`
-      countryMap.set(key, (countryMap.get(key) || 0) + getDataValue(d))
-    })
-    const countryChartData = years.map((year) => {
-      const entry: Record<string, number | string> = { year: String(year) }
-      countries.forEach((country) => {
-        const key = `${year}-${country}`
-        entry[country] = countryMap.get(key) || 0
-      })
-      return entry
-    })
 
 
     // Region Country Percentage - Grouped by Year
@@ -546,134 +523,43 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
       })
     })
 
-    // Generate year-wise stacked bar chart data for share analysis
-    const bladeMaterialStackedData = generateYearWiseStackedBarData(
-      (d) => d.bladeMaterial || '',
-      filters.bladeMaterial.length > 0 ? filters.bladeMaterial : undefined
+    // Generate year-wise stacked bar chart data for share analysis - NEW FILTERS
+    const serviceTypeStackedData = generateYearWiseStackedBarData(
+      (d) => d.serviceType || '',
+      filters.byServiceType.length > 0 ? filters.byServiceType : undefined
     )
-    const productTypeStackedData = generateYearWiseStackedBarData(
-      (d) => d.productType || '',
-      filters.productType.length > 0 ? filters.productType : undefined
+    const endUserTypeStackedData = generateYearWiseStackedBarData(
+      (d) => d.endUserType || '',
+      filters.byEndUser.length > 0 ? filters.byEndUser : undefined
     )
-    const handleLengthStackedData = generateYearWiseStackedBarData(
-      (d) => d.handleLength || '',
-      filters.handleLength.length > 0 ? filters.handleLength : undefined
+    const deliveryChannelStackedData = generateYearWiseStackedBarData(
+      (d) => d.deliveryChannel || '',
+      filters.byDeliveryChannel.length > 0 ? filters.byDeliveryChannel : undefined
     )
-    const applicationStackedData = generateYearWiseStackedBarData(
-      (d) => d.application || '',
-      filters.application.length > 0 ? filters.application : undefined
-    )
-    const endUserStackedData = generateYearWiseStackedBarData(
-      (d) => d.endUser || '',
-      filters.endUser.length > 0 ? filters.endUser : undefined
+    const businessModelStackedData = generateYearWiseStackedBarData(
+      (d) => d.businessModel || '',
+      filters.byBusinessModel.length > 0 ? filters.byBusinessModel : undefined
     )
 
-    // Generate distribution channel type stacked bar chart data (Online vs Offline)
-    const distributionChannelTypeStackedData = generateYearWiseStackedBarData(
-      (d) => d.distributionChannelType || '',
-      filters.distributionChannelType.length > 0 ? filters.distributionChannelType : undefined
-    )
 
-    // Generate distribution channel subtype stacked bar chart data
-    // Only show if a distribution channel type is selected
-    let offlineChannelStackedData: { chartData: Array<Record<string, number | string>>; segments: string[] } = { chartData: [], segments: [] }
-    let onlineChannelStackedData: { chartData: Array<Record<string, number | string>>; segments: string[] } = { chartData: [], segments: [] }
-    
-    if (filters.distributionChannelType.length > 0) {
-      // Filter data for offline channels
-      if (filters.distributionChannelType.includes('Offline')) {
-        const offlineData = filteredData.filter(d => d.distributionChannelType === 'Offline')
-        const offlineChannels = [...new Set(offlineData.map(d => d.distributionChannel))].filter(Boolean).sort() as string[]
-        
-        const yearChannelMap = new Map<number, Map<string, number>>()
-        offlineData.forEach(d => {
-          const year = d.year
-          const channel = d.distributionChannel
-          if (channel) {
-            if (!yearChannelMap.has(year)) {
-              yearChannelMap.set(year, new Map<string, number>())
-            }
-            const channelMap = yearChannelMap.get(year)!
-            channelMap.set(channel, (channelMap.get(channel) || 0) + getDataValue(d))
-          }
-        })
-        
-        const chartData = years.map(year => {
-          const entry: Record<string, number | string> = { year: String(year) }
-          const channelMap = yearChannelMap.get(year) || new Map<string, number>()
-          offlineChannels.forEach(channel => {
-            entry[channel] = channelMap.get(channel) || 0
-          })
-          return entry
-        })
-        
-        const activeChannels = offlineChannels.filter(channel => 
-          chartData.some(entry => (entry[channel] as number) > 0)
-        )
-        
-        offlineChannelStackedData = { chartData, segments: activeChannels }
-      }
-      
-      // Filter data for online channels
-      if (filters.distributionChannelType.includes('Online')) {
-        const onlineData = filteredData.filter(d => d.distributionChannelType === 'Online')
-        const onlineChannels = [...new Set(onlineData.map(d => d.distributionChannel))].filter(Boolean).sort() as string[]
-        
-        const yearChannelMap = new Map<number, Map<string, number>>()
-        onlineData.forEach(d => {
-          const year = d.year
-          const channel = d.distributionChannel
-          if (channel) {
-            if (!yearChannelMap.has(year)) {
-              yearChannelMap.set(year, new Map<string, number>())
-            }
-            const channelMap = yearChannelMap.get(year)!
-            channelMap.set(channel, (channelMap.get(channel) || 0) + getDataValue(d))
-          }
-        })
-        
-        const chartData = years.map(year => {
-          const entry: Record<string, number | string> = { year: String(year) }
-          const channelMap = yearChannelMap.get(year) || new Map<string, number>()
-          onlineChannels.forEach(channel => {
-            entry[channel] = channelMap.get(channel) || 0
-          })
-          return entry
-        })
-        
-        const activeChannels = onlineChannels.filter(channel => 
-          chartData.some(entry => (entry[channel] as number) > 0)
-        )
-        
-        onlineChannelStackedData = { chartData, segments: activeChannels }
-      }
-    }
 
     return {
-      productTypeChartData: productTypeData.chartData,
-      bladeMaterialChartData: bladeMaterialData.chartData,
-      handleLengthChartData: handleLengthData.chartData,
-      applicationChartData: applicationData.chartData,
-      endUserChartData: endUserData.chartData,
-      countryChartData,
+      serviceTypeChartData: serviceTypeData.chartData,
+      endUserTypeChartData: endUserTypeData.chartData,
+      deliveryChannelChartData: deliveryChannelData.chartData,
+      businessModelChartData: businessModelData.chartData,
       regionCountryPercentageChartData,
-      productTypes: productTypeData.segments,
-      bladeMaterials: bladeMaterialData.segments,
-      handleLengths: handleLengthData.segments,
-      applications: applicationData.segments,
-      endUsers: endUserData.segments,
-      countries,
+      serviceTypes: serviceTypeData.segments,
+      endUserTypes: endUserTypeData.segments,
+      deliveryChannels: deliveryChannelData.segments,
+      businessModels: businessModelData.segments,
       // Year-wise stacked bar chart data for share analysis
-      bladeMaterialStackedData,
-      productTypeStackedData,
-      handleLengthStackedData,
-      applicationStackedData,
-      endUserStackedData,
-      distributionChannelTypeStackedData,
-      offlineChannelStackedData,
-      onlineChannelStackedData,
+      serviceTypeStackedData,
+      endUserTypeStackedData,
+      deliveryChannelStackedData,
+      businessModelStackedData,
     }
-  }, [filteredData, filters.marketEvaluation, filters.productType, filters.bladeMaterial, filters.handleLength, filters.application, filters.endUser, filters.country, filters.distributionChannelType])
+  }, [filteredData, filters.marketEvaluation, filters.byServiceType, filters.byEndUser, filters.byDeliveryChannel, filters.byBusinessModel, filters.byRegion])
 
   // KPI Stats
   const kpis = useMemo(() => {
@@ -701,27 +587,35 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
       }
     }
 
-    const regionSet = new Set<string>()
-    const countryRegionMap = new Map<string, string>() // country -> region mapping
-
-    data.forEach(d => {
-      if (d.region) regionSet.add(d.region)
-      if (d.country && d.region) {
-        countryRegionMap.set(d.country, d.region)
-      }
-    })
+    // Only allow North America and Europe for incremental analysis
+    const allowedRegions = ['North America', 'Europe']
+    
+    // Define country mapping for allowed regions
+    const regionCountryMap: Record<string, string[]> = {
+      'North America': ['U.S.', 'Canada'],
+      'Europe': ['U.K.', 'Germany', 'France', 'Italy', 'Spain', 'Russia', 'Rest of Europe']
+    }
 
     // Filter countries based on selected regions
-    let availableCountries = Array.from(countryRegionMap.keys())
+    let availableCountries: string[] = []
     if (incrementalFilters.region.length > 0) {
-      availableCountries = availableCountries.filter(country => {
-        const countryRegion = countryRegionMap.get(country)
-        return countryRegion && incrementalFilters.region.includes(countryRegion)
+      // Show only countries from selected regions
+      incrementalFilters.region.forEach(region => {
+        if (regionCountryMap[region]) {
+          availableCountries = [...availableCountries, ...regionCountryMap[region]]
+        }
+      })
+    } else {
+      // If no region selected, show all countries from allowed regions
+      allowedRegions.forEach(region => {
+        if (regionCountryMap[region]) {
+          availableCountries = [...availableCountries, ...regionCountryMap[region]]
+        }
       })
     }
 
     return {
-      regions: Array.from(regionSet).sort(),
+      regions: allowedRegions,
       countries: availableCountries.sort(),
     }
   }, [data, incrementalFilters.region])
@@ -787,51 +681,71 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
     if (!data || data.length === 0) {
       return {
         regions: [],
-        productTypes: [],
         countries: [],
+        segmentTypes: [],
+        serviceTypes: [],
+        endUserTypes: [],
+        deliveryChannels: [],
+        businessModels: [],
       }
     }
 
-    const regionSet = new Set<string>()
-    const pyrolysisMethodSet = new Set<string>()
-    const sourceMaterialSet = new Set<string>()
-    const productGradeSet = new Set<string>()
-    const formSet = new Set<string>()
-    const applicationSet = new Set<string>()
-    const distributionChannelSet = new Set<string>()
-    const countryRegionMap = new Map<string, string>() // country -> region mapping
-
-    data.forEach(d => {
-      if (d.region) regionSet.add(d.region)
-      if (d.productType) pyrolysisMethodSet.add(d.productType)
-      if (d.bladeMaterial) sourceMaterialSet.add(d.bladeMaterial)
-      if (d.handleLength) productGradeSet.add(d.handleLength)
-      if (d.application) formSet.add(d.application)
-      if (d.endUser) applicationSet.add(d.endUser)
-      if (d.distributionChannelType) distributionChannelSet.add(d.distributionChannelType)
-      if (d.country && d.region) {
-        countryRegionMap.set(d.country, d.region)
-      }
-    })
+    // Only allow North America and Europe
+    const allowedRegions = ['North America', 'Europe']
+    
+    // Define country mapping for allowed regions
+    const regionCountryMap: Record<string, string[]> = {
+      'North America': ['U.S.', 'Canada'],
+      'Europe': ['U.K.', 'Germany', 'France', 'Italy', 'Spain', 'Russia', 'Rest of Europe']
+    }
 
     // Filter countries based on selected regions
-    let availableCountries = Array.from(countryRegionMap.keys())
+    let availableCountries: string[] = []
     if (attractivenessFilters.region.length > 0) {
-      availableCountries = availableCountries.filter(country => {
-        const countryRegion = countryRegionMap.get(country)
-        return countryRegion && attractivenessFilters.region.includes(countryRegion)
+      // Show only countries from selected regions
+      attractivenessFilters.region.forEach(region => {
+        if (regionCountryMap[region]) {
+          availableCountries = [...availableCountries, ...regionCountryMap[region]]
+        }
+      })
+    } else {
+      // If no region selected, show all countries from allowed regions
+      allowedRegions.forEach(region => {
+        if (regionCountryMap[region]) {
+          availableCountries = [...availableCountries, ...regionCountryMap[region]]
+        }
       })
     }
 
+    // Segment types for the dropdown
+    const segmentTypes = [
+      'By Service Type',
+      'By End User',
+      'By Delivery Channel',
+      'By Business Model'
+    ]
+
+    // Get unique values for each segment type
+    const serviceTypeSet = new Set<string>()
+    const endUserTypeSet = new Set<string>()
+    const deliveryChannelSet = new Set<string>()
+    const businessModelSet = new Set<string>()
+
+    data.forEach(d => {
+      if (d.serviceType) serviceTypeSet.add(d.serviceType)
+      if (d.endUserType) endUserTypeSet.add(d.endUserType)
+      if (d.deliveryChannel) deliveryChannelSet.add(d.deliveryChannel)
+      if (d.businessModel) businessModelSet.add(d.businessModel)
+    })
+
     return {
-      regions: Array.from(regionSet).sort(),
-      pyrolysisMethods: Array.from(pyrolysisMethodSet).sort(),
-      sourceMaterials: Array.from(sourceMaterialSet).sort(),
-      productGrades: Array.from(productGradeSet).sort(),
-      forms: Array.from(formSet).sort(),
-      applications: Array.from(applicationSet).sort(),
-      distributionChannels: Array.from(distributionChannelSet).sort(),
+      regions: allowedRegions,
       countries: availableCountries.sort(),
+      segmentTypes: segmentTypes,
+      serviceTypes: Array.from(serviceTypeSet).sort(),
+      endUserTypes: Array.from(endUserTypeSet).sort(),
+      deliveryChannels: Array.from(deliveryChannelSet).sort(),
+      businessModels: Array.from(businessModelSet).sort(),
     }
   }, [data, attractivenessFilters.region])
 
@@ -848,23 +762,17 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
     if (attractivenessFilters.country.length > 0) {
       filtered = filtered.filter(d => attractivenessFilters.country.includes(d.country))
     }
-    if (attractivenessFilters.pyrolysisMethod.length > 0) {
-      filtered = filtered.filter(d => attractivenessFilters.pyrolysisMethod.includes(d.productType))
+    if (attractivenessFilters.serviceType.length > 0) {
+      filtered = filtered.filter(d => attractivenessFilters.serviceType.includes(d.serviceType))
     }
-    if (attractivenessFilters.sourceMaterial.length > 0) {
-      filtered = filtered.filter(d => attractivenessFilters.sourceMaterial.includes(d.bladeMaterial))
+    if (attractivenessFilters.endUserType.length > 0) {
+      filtered = filtered.filter(d => attractivenessFilters.endUserType.includes(d.endUserType))
     }
-    if (attractivenessFilters.productGrade.length > 0) {
-      filtered = filtered.filter(d => attractivenessFilters.productGrade.includes(d.handleLength))
+    if (attractivenessFilters.deliveryChannel.length > 0) {
+      filtered = filtered.filter(d => attractivenessFilters.deliveryChannel.includes(d.deliveryChannel))
     }
-    if (attractivenessFilters.form.length > 0) {
-      filtered = filtered.filter(d => attractivenessFilters.form.includes(d.application))
-    }
-    if (attractivenessFilters.application.length > 0) {
-      filtered = filtered.filter(d => attractivenessFilters.application.includes(d.endUser))
-    }
-    if (attractivenessFilters.distributionChannel.length > 0) {
-      filtered = filtered.filter(d => attractivenessFilters.distributionChannel.includes(d.distributionChannelType))
+    if (attractivenessFilters.businessModel.length > 0) {
+      filtered = filtered.filter(d => attractivenessFilters.businessModel.includes(d.businessModel))
     }
 
     return filtered
@@ -872,28 +780,27 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
 
   // Bubble Chart Data (Market Attractiveness) - group by selected category
   const bubbleChartDataByCategory = useMemo(() => {
-    // Determine what to group by based on selectedCategory
+    // Determine what to group by based on segmentType and selectedCategory
+    const segmentType = attractivenessFilters.segmentType
     const category = attractivenessFilters.selectedCategory
 
-    // Helper function to get the field value based on category
-    const getCategoryValue = (d: any, cat: string) => {
-      switch (cat) {
-        case 'pyrolysisMethod': return d.productType
-        case 'sourceMaterial': return d.bladeMaterial
-        case 'productGrade': return d.handleLength
-        case 'form': return d.application
-        case 'application': return d.endUser
-        case 'distributionChannel': return d.distributionChannelType
-        default: return d.region // Default to region
+    // Helper function to get the field value based on segment type
+    const getCategoryValue = (d: any, segType: string) => {
+      switch (segType) {
+        case 'By Service Type': return d.serviceType
+        case 'By End User': return d.endUserType
+        case 'By Delivery Channel': return d.deliveryChannel
+        case 'By Business Model': return d.businessModel
+        default: return null
       }
     }
 
-    // If no category selected, return empty array
-    if (!category) {
+    // If no segment type selected, return empty array
+    if (!segmentType) {
       return []
     }
 
-    // Group data by the selected category
+    // Group data by the selected segment type
     const categoryDataMap = new Map<string, {
       values: number[]
       volumes: number[]
@@ -901,7 +808,7 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
     }>()
 
     filteredAttractivenessData.forEach(d => {
-      const categoryValue = getCategoryValue(d, category)
+      const categoryValue = getCategoryValue(d, segmentType)
       if (!categoryValue) return
 
       if (!categoryDataMap.has(categoryValue)) {
@@ -914,15 +821,6 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
       itemData.volumes.push(d.volumeUnits || 0)
       itemData.years.push(d.year)
     })
-    
-    // Debug: Check if different categories are using overlapping data
-    if (category === 'sourceMaterial') {
-      console.log('🔍 Source Material Data Points Check:')
-      categoryDataMap.forEach((itemData, categoryValue) => {
-        console.log(`${categoryValue}: ${itemData.values.length} data points, years: ${[...new Set(itemData.years)].sort().join(', ')}`)
-        console.log(`  Sample values: ${itemData.values.slice(0, 5).map(v => v.toFixed(2)).join(', ')}...`)
-      })
-    }
 
     // Calculate CAGR Index and Market Share Index for each category item
     const items = Array.from(categoryDataMap.keys())
@@ -1107,49 +1005,84 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
     if (!data || data.length === 0) {
       return {
         regions: [],
-        productTypes: [],
         countries: [],
-        countryOptions: [], // Options with region names
+        countryGroupedOptions: [],
+        segmentCategories: [],
+        segmentCategoryMap: new Map<string, string[]>(),
       }
     }
     
-    const regionSet = new Set<string>()
-    const productTypeSet = new Set<string>()
-    const countryRegionMap = new Map<string, string>() // country -> region mapping
+    // Only allow North America and Europe
+    const allowedRegions = ['North America', 'Europe']
     
-    data.forEach(d => {
-      if (d.region) regionSet.add(d.region)
-      if (d.productType) productTypeSet.add(d.productType)
-      if (d.country && d.region) {
-        countryRegionMap.set(d.country, d.region)
-      }
-    })
-    
+    // Define country mapping for allowed regions
+    const regionCountryMap: Record<string, string[]> = {
+      'North America': ['U.S.', 'Canada'],
+      'Europe': ['U.K.', 'Germany', 'France', 'Italy', 'Spain', 'Russia', 'Rest of Europe']
+    }
+
     // Filter countries based on selected regions
-    let availableCountries = Array.from(countryRegionMap.keys())
-    if (yoyFilters.region.length > 0) {
-      availableCountries = availableCountries.filter(country => {
-        const countryRegion = countryRegionMap.get(country)
-        return countryRegion && yoyFilters.region.includes(countryRegion)
-      })
-    }
+    let availableCountries: string[] = []
+    let countryGroupedOptions: Array<{ group: string; items: string[] }> = []
     
-    // Create country options with region names
-    const countryOptions = availableCountries
-      .sort()
-      .map(country => {
-        const region = countryRegionMap.get(country) || ''
-        return {
-          value: country,
-          label: `${country} (${region})`
+    if (yoyFilters.region.length > 0) {
+      // Show only countries from selected regions
+      yoyFilters.region.forEach(region => {
+        if (regionCountryMap[region]) {
+          availableCountries = [...availableCountries, ...regionCountryMap[region]]
+          countryGroupedOptions.push({
+            group: region,
+            items: regionCountryMap[region]
+          })
         }
       })
+    } else {
+      // If no region selected, show all countries from allowed regions
+      allowedRegions.forEach(region => {
+        if (regionCountryMap[region]) {
+          availableCountries = [...availableCountries, ...regionCountryMap[region]]
+          countryGroupedOptions.push({
+            group: region,
+            items: regionCountryMap[region]
+          })
+        }
+      })
+    }
+
+    // Get unique segment types from data, grouped by category
+    const serviceTypeSet = new Set<string>()
+    const endUserTypeSet = new Set<string>()
+    const deliveryChannelSet = new Set<string>()
+    const businessModelSet = new Set<string>()
+    
+    data.forEach(d => {
+      if (d.serviceType) serviceTypeSet.add(d.serviceType)
+      if (d.endUserType) endUserTypeSet.add(d.endUserType)
+      if (d.deliveryChannel) deliveryChannelSet.add(d.deliveryChannel)
+      if (d.businessModel) businessModelSet.add(d.businessModel)
+    })
+    
+    // Create segment categories (the main 4 categories)
+    const segmentCategories = [
+      'By Service Type',
+      'By End User',
+      'By Delivery Channel',
+      'By Business Model'
+    ]
+    
+    // Create a map of category to its child items
+    const segmentCategoryMap = new Map<string, string[]>()
+    segmentCategoryMap.set('By Service Type', Array.from(serviceTypeSet).sort())
+    segmentCategoryMap.set('By End User', Array.from(endUserTypeSet).sort())
+    segmentCategoryMap.set('By Delivery Channel', Array.from(deliveryChannelSet).sort())
+    segmentCategoryMap.set('By Business Model', Array.from(businessModelSet).sort())
     
     return {
-      regions: Array.from(regionSet).sort(),
-      productTypes: Array.from(productTypeSet).sort(),
+      regions: allowedRegions,
       countries: availableCountries.sort(),
-      countryOptions: countryOptions,
+      countryGroupedOptions: countryGroupedOptions,
+      segmentCategories: segmentCategories,
+      segmentCategoryMap: segmentCategoryMap,
     }
   }, [data, yoyFilters.region])
 
@@ -1160,17 +1093,16 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
     if (yoyFilters.region.length > 0) {
       filtered = filtered.filter(d => yoyFilters.region.includes(d.region))
     }
-    if (yoyFilters.productType.length > 0) {
-      filtered = filtered.filter(d => yoyFilters.productType.includes(d.productType))
-    }
     if (yoyFilters.country.length > 0) {
       filtered = filtered.filter(d => yoyFilters.country.includes(d.country))
     }
+    // Note: We don't filter by segmentType here because we want all data
+    // The chart will show specific segments based on the selected categories
     
     return filtered
-  }, [data, yoyFilters])
+  }, [data, yoyFilters.region, yoyFilters.country])
 
-  // YoY/CAGR Chart Data - Generate separate data for each country/region with product type lines
+  // YoY/CAGR Chart Data - Generate separate data for each country/region with segment type lines
   const yoyCagrDataByEntity = useMemo(() => {
     // Determine which entities to create charts for
     const entities: Array<{ type: 'country' | 'region', name: string, label: string }> = []
@@ -1203,15 +1135,27 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
       return []
     }
     
-    // Get selected product types (default to all if empty)
-    const selectedProductTypes = yoyFilters.productType.length > 0 
-      ? yoyFilters.productType 
-      : yoyFilterOptions.productTypes
+    // Get selected segment types based on selected categories
+    // If categories are selected, get all child items from those categories
+    let selectedSegmentTypes: string[] = []
     
-    // Generate data for each entity with product type lines
+    if (yoyFilters.segmentType.length > 0) {
+      // Get all child items from selected categories
+      yoyFilters.segmentType.forEach(category => {
+        const childItems = yoyFilterOptions.segmentCategoryMap.get(category) || []
+        selectedSegmentTypes = [...selectedSegmentTypes, ...childItems]
+      })
+    } else {
+      // If no category selected, get all segment types from all categories
+      yoyFilterOptions.segmentCategoryMap.forEach((items) => {
+        selectedSegmentTypes = [...selectedSegmentTypes, ...items]
+      })
+    }
+    
+    // Generate data for each entity with segment type lines
     const entityDataMap = new Map<string, { 
       data: Array<{ year: string, [key: string]: any }>, 
-      productTypes: string[] 
+      segmentTypes: string[] 
     }>()
     
     entities.forEach(entity => {
@@ -1224,25 +1168,35 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
         entityFilteredData = entityFilteredData.filter(d => d.region === entity.name)
       }
       
-      // Group data by year and product type
-      const yearProductDataMap = new Map<number, Map<string, number>>()
+      // Group data by year and segment type
+      const yearSegmentDataMap = new Map<number, Map<string, number>>()
       const allYears = new Set<number>()
       
       entityFilteredData.forEach(d => {
-        if (!selectedProductTypes.includes(d.productType)) return
-        
         const year = d.year
-        const productType = d.productType
         const value = (d.marketValueUsd || 0) / 1000 // Convert to millions
         
         allYears.add(year)
         
-        if (!yearProductDataMap.has(year)) {
-          yearProductDataMap.set(year, new Map<string, number>())
+        if (!yearSegmentDataMap.has(year)) {
+          yearSegmentDataMap.set(year, new Map<string, number>())
         }
         
-        const productMap = yearProductDataMap.get(year)!
-        productMap.set(productType, (productMap.get(productType) || 0) + value)
+        const segmentMap = yearSegmentDataMap.get(year)!
+        
+        // Add value to all applicable segment types
+        if (d.serviceType && selectedSegmentTypes.includes(d.serviceType)) {
+          segmentMap.set(d.serviceType, (segmentMap.get(d.serviceType) || 0) + value)
+        }
+        if (d.endUserType && selectedSegmentTypes.includes(d.endUserType)) {
+          segmentMap.set(d.endUserType, (segmentMap.get(d.endUserType) || 0) + value)
+        }
+        if (d.deliveryChannel && selectedSegmentTypes.includes(d.deliveryChannel)) {
+          segmentMap.set(d.deliveryChannel, (segmentMap.get(d.deliveryChannel) || 0) + value)
+        }
+        if (d.businessModel && selectedSegmentTypes.includes(d.businessModel)) {
+          segmentMap.set(d.businessModel, (segmentMap.get(d.businessModel) || 0) + value)
+        }
       })
       
       // Sort years
@@ -1253,29 +1207,29 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
         return
       }
       
-      // Calculate YoY for each product type for each year
+      // Calculate YoY for each segment type for each year
       const chartData = years.map((year, yearIndex) => {
         const yearData: { year: string, [key: string]: any } = {
           year: String(year)
         }
         
-        selectedProductTypes.forEach(productType => {
-          const currentYearData = yearProductDataMap.get(year) || new Map()
-          const currentValue = currentYearData.get(productType) || 0
+        selectedSegmentTypes.forEach(segmentType => {
+          const currentYearData = yearSegmentDataMap.get(year) || new Map()
+          const currentValue = currentYearData.get(segmentType) || 0
           
-          // Calculate YoY (Year-over-Year) growth for this product type
+          // Calculate YoY (Year-over-Year) growth for this segment type
           let yoy = 0
           if (yearIndex > 0) {
             const previousYear = years[yearIndex - 1]
-            const previousYearData = yearProductDataMap.get(previousYear) || new Map()
-            const previousValue = previousYearData.get(productType) || 0
+            const previousYearData = yearSegmentDataMap.get(previousYear) || new Map()
+            const previousValue = previousYearData.get(segmentType) || 0
             if (previousValue > 0) {
               yoy = ((currentValue - previousValue) / previousValue) * 100
             }
           }
           
-          // Store YoY value with product type as key
-          yearData[productType] = yoy
+          // Store YoY value with segment type as key
+          yearData[segmentType] = yoy
         })
         
         return yearData
@@ -1283,16 +1237,16 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
       
       entityDataMap.set(entity.label, {
         data: chartData,
-        productTypes: selectedProductTypes
+        segmentTypes: selectedSegmentTypes
       })
     })
     
-    return Array.from(entityDataMap.entries()).map(([label, { data, productTypes }]) => ({
+    return Array.from(entityDataMap.entries()).map(([label, { data, segmentTypes }]) => ({
       label,
       data,
-      productTypes
+      segmentTypes
     }))
-  }, [filteredYoyData, yoyFilters.country, yoyFilters.region, yoyFilters.productType, yoyFilterOptions.productTypes])
+  }, [filteredYoyData, yoyFilters.country, yoyFilters.region, yoyFilters.segmentType, yoyFilterOptions.segmentCategoryMap])
 
   if (loading) {
     return (
@@ -1431,12 +1385,6 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                 onChange={(value) => setFilters({ ...filters, year: (value as string[]).map(v => Number(v)) })}
                 options={uniqueOptions.years ? uniqueOptions.years.map(y => String(y)) : []}
               />
-              <FilterDropdown
-                label="Country"
-                value={filters.country}
-                onChange={(value) => setFilters({ ...filters, country: value as string[] })}
-                options={uniqueOptions.countries || []}
-              />
               <div className="w-full">
                 <label className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark mb-2">
                   Market Evaluation
@@ -1456,79 +1404,102 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-6">
               <FilterDropdown
-                label="By Pyrolysis Method"
-                value={filters.productType}
-                onChange={(value) => setFilters({ ...filters, productType: value as string[] })}
-                options={uniqueOptions.productTypes}
-              />
-              <FilterDropdown
-                label="By Source Material"
-                value={filters.bladeMaterial}
-                onChange={(value) => setFilters({ ...filters, bladeMaterial: value as string[] })}
-                options={uniqueOptions.bladeMaterials}
-              />
-              <FilterDropdown
-                label="By Product Grade"
-                value={filters.handleLength}
-                onChange={(value) => setFilters({ ...filters, handleLength: value as string[] })}
-                options={uniqueOptions.handleLengths}
-              />
-              <FilterDropdown
-                label="By Form"
-                value={filters.application}
-                onChange={(value) => setFilters({ ...filters, application: value as string[] })}
-                options={uniqueOptions.applications}
-              />
-              <FilterDropdown
-                label="By Distribution Channel"
-                value={filters.distributionChannelType}
-                onChange={(value) => setFilters({ ...filters, distributionChannelType: value as string[] })}
-                options={uniqueOptions.distributionChannelTypes || []}
-              />
-              <FilterDropdown
-                label="By Application"
-                value={filters.endUser}
-                onChange={(value) => {
-                  const newCategories = value as string[]
-                  // Filter out invalid subtypes when application category changes
-                  let validSubtypes = filters.distributionChannel
-                  if (newCategories.length > 0 && filters.distributionChannel.length > 0) {
-                    // Get valid subtypes for selected application categories
-                    const categoryFilteredData = data.filter(d =>
-                      newCategories.includes(d.endUser)
-                    )
-                    const validSubtypeSet = new Set<string>()
-                    categoryFilteredData.forEach(d => {
-                      if (d.distributionChannel) validSubtypeSet.add(d.distributionChannel)
-                    })
-                    validSubtypes = filters.distributionChannel.filter(subtype =>
-                      validSubtypeSet.has(subtype)
-                    )
-                  } else if (newCategories.length === 0) {
-                    // If no categories selected, clear subtypes
-                    validSubtypes = []
+                label="By Region"
+                value={filters.byRegion}
+                onChange={(value) => setFilters({ ...filters, byRegion: value as string[] })}
+                options={[]}
+                groupedOptions={[
+                  {
+                    group: 'North America',
+                    items: ['U.S.', 'Canada']
+                  },
+                  {
+                    group: 'Europe',
+                    items: ['U.K.', 'Germany', 'France', 'Italy', 'Spain', 'Russia', 'Rest of Europe']
                   }
-                  setFilters({
-                    ...filters,
-                    endUser: newCategories,
-                    distributionChannel: validSubtypes
-                  })
-                }}
-                options={uniqueOptions.endUsers}
+                ]}
               />
               <FilterDropdown
-                label="By Application Subtype"
-                value={filters.distributionChannel}
-                onChange={(value) => setFilters({ ...filters, distributionChannel: value as string[] })}
-                options={availableDistributionChannels}
-                groupedOptions={distributionChannelGroupedOptions}
+                label="By Service Type"
+                value={filters.byServiceType}
+                onChange={(value) => setFilters({ ...filters, byServiceType: value as string[] })}
+                options={[]}
+                groupedOptions={[
+                  {
+                    group: 'By Service Type',
+                    items: [
+                      'Personal Branding & Executive Consulting',
+                      'Digital Presence & Branding Consulting',
+                      'Transition & Career Image Coaching',
+                      'Corporate & Institutional Image Training',
+                      'Educational & Scalable Branding Programs',
+                      'Public Figure & Media Image Consulting',
+                      'Others (Communication & Presence Coaching, etc.)'
+                    ]
+                  }
+                ]}
+              />
+              <FilterDropdown
+                label="By End User"
+                value={filters.byEndUser}
+                onChange={(value) => setFilters({ ...filters, byEndUser: value as string[] })}
+                options={[]}
+                groupedOptions={[
+                  {
+                    group: 'By End User',
+                    items: [
+                      'Senior Executives & Professionals',
+                      'Transitioning Military Personnel',
+                      'Youth & Students (High School / College)',
+                      'Public Figures',
+                      'Government Officials',
+                      'Corporate Teams (HR, Sales, Leadership)',
+                      'Everyday Professionals (Emerging Workforce)'
+                    ]
+                  }
+                ]}
+              />
+              <FilterDropdown
+                label="By Delivery Channel"
+                value={filters.byDeliveryChannel}
+                onChange={(value) => setFilters({ ...filters, byDeliveryChannel: value as string[] })}
+                options={[]}
+                groupedOptions={[
+                  {
+                    group: 'By Delivery Channel',
+                    items: [
+                      'In-Person Consulting',
+                      'Virtual / Online Consulting',
+                      'Hybrid Engagement'
+                    ]
+                  }
+                ]}
+              />
+              <FilterDropdown
+                label="By Business Model"
+                value={filters.byBusinessModel}
+                onChange={(value) => setFilters({ ...filters, byBusinessModel: value as string[] })}
+                options={[]}
+                groupedOptions={[
+                  {
+                    group: 'By Business Model',
+                    items: [
+                      'Premium One-on-One Consulting',
+                      'Subscription-Based Digital Coaching',
+                      'Corporate Contracts / Retainers',
+                      'Online Course / Self-paced Learning',
+                      'Hybrid Workshop + eLearning',
+                      'Licensing / Affiliate Programs'
+                    ]
+                  }
+                ]}
               />
             </div>
 
             {/* Active Filters Display */}
-            {(filters.year.length > 0 || filters.productType.length > 0 || filters.country.length > 0) && (
+            {(filters.year.length > 0 || filters.productType.length > 0 || filters.byRegion.length > 0 || filters.byServiceType.length > 0 || filters.byEndUser.length > 0 || filters.byDeliveryChannel.length > 0 || filters.byBusinessModel.length > 0) && (
               <div className="mt-6 pt-6 border-t-2 border-gray-300 dark:border-navy-light">
                 <div className={`p-4 rounded-lg ${isDark ? 'bg-navy-dark' : 'bg-blue-50'}`}>
                   <p className="text-base font-semibold text-text-primary-light dark:text-text-primary-dark mb-2">
@@ -1547,12 +1518,46 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                         {filters.productType.length > 0 ? filters.productType.join(', ') : 'All'}
                       </span>
                     </div>
-                    <div>
-                      <span className="font-medium text-text-secondary-light dark:text-text-secondary-dark">Countries:</span>
-                      <span className="ml-2 font-semibold text-electric-blue dark:text-cyan-accent">
-                        {filters.country.length > 0 ? filters.country.join(', ') : 'All Countries'}
-                      </span>
-                    </div>
+                    {filters.byRegion.length > 0 && (
+                      <div>
+                        <span className="font-medium text-text-secondary-light dark:text-text-secondary-dark">By Region:</span>
+                        <span className="ml-2 font-semibold text-electric-blue dark:text-cyan-accent">
+                          {filters.byRegion.join(', ')}
+                        </span>
+                      </div>
+                    )}
+                    {filters.byServiceType.length > 0 && (
+                      <div>
+                        <span className="font-medium text-text-secondary-light dark:text-text-secondary-dark">By Service Type:</span>
+                        <span className="ml-2 font-semibold text-electric-blue dark:text-cyan-accent">
+                          {filters.byServiceType.join(', ')}
+                        </span>
+                      </div>
+                    )}
+                    {filters.byEndUser.length > 0 && (
+                      <div>
+                        <span className="font-medium text-text-secondary-light dark:text-text-secondary-dark">By End User:</span>
+                        <span className="ml-2 font-semibold text-electric-blue dark:text-cyan-accent">
+                          {filters.byEndUser.join(', ')}
+                        </span>
+                      </div>
+                    )}
+                    {filters.byDeliveryChannel.length > 0 && (
+                      <div>
+                        <span className="font-medium text-text-secondary-light dark:text-text-secondary-dark">By Delivery Channel:</span>
+                        <span className="ml-2 font-semibold text-electric-blue dark:text-cyan-accent">
+                          {filters.byDeliveryChannel.join(', ')}
+                        </span>
+                      </div>
+                    )}
+                    {filters.byBusinessModel.length > 0 && (
+                      <div>
+                        <span className="font-medium text-text-secondary-light dark:text-text-secondary-dark">By Business Model:</span>
+                        <span className="ml-2 font-semibold text-electric-blue dark:text-cyan-accent">
+                          {filters.byBusinessModel.join(', ')}
+                        </span>
+                      </div>
+                    )}
                     <div>
                       <span className="font-medium text-text-secondary-light dark:text-text-secondary-dark">Evaluation:</span>
                       <span className="ml-2 font-semibold text-electric-blue dark:text-cyan-accent">
@@ -1589,51 +1594,102 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                 </div>
               </div>
 
-              {/* Graph 1: Market Size By Product Grade */}
-          {analysisData.handleLengthChartData.length > 0 && analysisData.handleLengths && analysisData.handleLengths.length > 0 && (
-            <div className="mb-20">
-              <div className="mb-8">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className={`w-1 h-10 rounded-full ${isDark ? 'bg-cyan-accent' : 'bg-electric-blue'}`}></div>
-                  <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} by product grade grouped by year\n• X-axis: Year\n• Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Compare product grade performance across years`}>
-                    <h2 className="text-3xl font-bold text-text-primary-light dark:text-text-primary-dark cursor-help">
-                      {filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'} By Product Grade
-                    </h2>
-                  </InfoTooltip>
-                </div>
-                <p className="text-base text-text-secondary-light dark:text-text-secondary-dark ml-4 mb-2">
-                  Product grade performance comparison by year
-                </p>
+              {/* Grouped Bar Charts for New Filters */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-20 mb-20">
+                {/* Service Type Chart */}
+                {analysisData.serviceTypeChartData.length > 0 && analysisData.serviceTypes && analysisData.serviceTypes.length > 0 && (
+                  <div className={`p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[550px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
+                    <div className="mb-4 pb-4 border-b border-gray-200 dark:border-navy-light">
+                      <h3 className="text-lg font-bold text-electric-blue dark:text-cyan-accent mb-1">
+                        {filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'} By Service Type
+                      </h3>
+                      <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                        {getDataLabel()}
+                      </p>
+                    </div>
+                    <div className="flex-1 flex items-center justify-center min-h-0 pt-2">
+                      <SegmentGroupedBarChart
+                        data={analysisData.serviceTypeChartData}
+                        segmentKeys={analysisData.serviceTypes}
+                        xAxisLabel="Year"
+                        yAxisLabel={getDataLabel()}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* End User Type Chart */}
+                {analysisData.endUserTypeChartData.length > 0 && analysisData.endUserTypes && analysisData.endUserTypes.length > 0 && (
+                  <div className={`p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[550px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
+                    <div className="mb-4 pb-4 border-b border-gray-200 dark:border-navy-light">
+                      <h3 className="text-lg font-bold text-electric-blue dark:text-cyan-accent mb-1">
+                        {filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'} By End User
+                      </h3>
+                      <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                        {getDataLabel()}
+                      </p>
+                    </div>
+                    <div className="flex-1 flex items-center justify-center min-h-0 pt-2">
+                      <SegmentGroupedBarChart
+                        data={analysisData.endUserTypeChartData}
+                        segmentKeys={analysisData.endUserTypes}
+                        xAxisLabel="Year"
+                        yAxisLabel={getDataLabel()}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Delivery Channel Chart */}
+                {analysisData.deliveryChannelChartData.length > 0 && analysisData.deliveryChannels && analysisData.deliveryChannels.length > 0 && (
+                  <div className={`p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[550px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
+                    <div className="mb-4 pb-4 border-b border-gray-200 dark:border-navy-light">
+                      <h3 className="text-lg font-bold text-electric-blue dark:text-cyan-accent mb-1">
+                        {filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'} By Delivery Channel
+                      </h3>
+                      <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                        {getDataLabel()}
+                      </p>
+                    </div>
+                    <div className="flex-1 flex items-center justify-center min-h-0 pt-2">
+                      <SegmentGroupedBarChart
+                        data={analysisData.deliveryChannelChartData}
+                        segmentKeys={analysisData.deliveryChannels}
+                        xAxisLabel="Year"
+                        yAxisLabel={getDataLabel()}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Business Model Chart */}
+                {analysisData.businessModelChartData.length > 0 && analysisData.businessModels && analysisData.businessModels.length > 0 && (
+                  <div className={`p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[550px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
+                    <div className="mb-4 pb-4 border-b border-gray-200 dark:border-navy-light">
+                      <h3 className="text-lg font-bold text-electric-blue dark:text-cyan-accent mb-1">
+                        {filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'} By Business Model
+                      </h3>
+                      <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                        {getDataLabel()}
+                      </p>
+                    </div>
+                    <div className="flex-1 flex items-center justify-center min-h-0 pt-2">
+                      <SegmentGroupedBarChart
+                        data={analysisData.businessModelChartData}
+                        segmentKeys={analysisData.businessModels}
+                        xAxisLabel="Year"
+                        yAxisLabel={getDataLabel()}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className={`p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[550px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
-                <div className="mb-4 pb-4 border-b border-gray-200 dark:border-navy-light">
-                  <h3 className="text-lg font-bold text-electric-blue dark:text-cyan-accent mb-1">
-                    {filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'} By Product Grade by Year
-                  </h3>
-                  <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
-                    {getDataLabel()}
-                  </p>
-                </div>
-                <div className="flex-1 flex items-center justify-center min-h-0 pt-2">
-                  <SegmentGroupedBarChart
-                    data={analysisData.handleLengthChartData}
-                    segmentKeys={analysisData.handleLengths}
-                    xAxisLabel="Year"
-                    yAxisLabel={getDataLabel()}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Share Analysis Section - Year-wise Stacked Bar Charts */}
-          {((analysisData.bladeMaterialStackedData.chartData.length > 0 && analysisData.bladeMaterialStackedData.segments.length > 0) ||
-            (analysisData.productTypeStackedData.chartData.length > 0 && analysisData.productTypeStackedData.segments.length > 0) ||
-            (analysisData.applicationStackedData.chartData.length > 0 && analysisData.applicationStackedData.segments.length > 0) ||
-            (analysisData.endUserStackedData.chartData.length > 0 && analysisData.endUserStackedData.segments.length > 0) ||
-            (analysisData.distributionChannelTypeStackedData.chartData.length > 0 && analysisData.distributionChannelTypeStackedData.segments.length > 0) ||
-            (analysisData.offlineChannelStackedData.chartData.length > 0 && analysisData.offlineChannelStackedData.segments.length > 0) ||
-            (analysisData.onlineChannelStackedData.chartData.length > 0 && analysisData.onlineChannelStackedData.segments.length > 0)) && (
+          {((analysisData.serviceTypeStackedData.chartData.length > 0 && analysisData.serviceTypeStackedData.segments.length > 0) ||
+            (analysisData.endUserTypeStackedData.chartData.length > 0 && analysisData.endUserTypeStackedData.segments.length > 0) ||
+            (analysisData.deliveryChannelStackedData.chartData.length > 0 && analysisData.deliveryChannelStackedData.segments.length > 0) ||
+            (analysisData.businessModelStackedData.chartData.length > 0 && analysisData.businessModelStackedData.segments.length > 0)) && (
             <div className="mb-20">
               <div className="mb-8">
                 <div className="flex items-center gap-3 mb-3">
@@ -1649,14 +1705,14 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                 </p>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Blade Material Stacked Bar Chart */}
-                {analysisData.bladeMaterialStackedData.chartData.length > 0 && analysisData.bladeMaterialStackedData.segments.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-20">
+                {/* Service Type Stacked Bar Chart */}
+                {analysisData.serviceTypeStackedData.chartData.length > 0 && analysisData.serviceTypeStackedData.segments.length > 0 && (
                   <div className={`p-5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[480px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
                     <div className="mb-3 pb-3 border-b border-gray-200 dark:border-navy-light">
-                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share by source material by year\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Each stacked bar shows the proportion for that year\n• Hover over bars to see detailed values and percentages`}>
+                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share by service type by year\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Each stacked bar shows the proportion for that year\n• Hover over bars to see detailed values and percentages`}>
                         <h3 className="text-base font-bold text-electric-blue dark:text-cyan-accent mb-1 cursor-help">
-                          Source Material Share
+                          Service Type Share
                         </h3>
                       </InfoTooltip>
                       <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
@@ -1665,8 +1721,8 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                     </div>
                     <div className="flex-1 flex items-center justify-center min-h-0">
                       <CrossSegmentStackedBarChart
-                        data={analysisData.bladeMaterialStackedData.chartData}
-                        dataKeys={analysisData.bladeMaterialStackedData.segments}
+                        data={analysisData.serviceTypeStackedData.chartData}
+                        dataKeys={analysisData.serviceTypeStackedData.segments}
                         xAxisLabel="Year"
                         yAxisLabel={getDataLabel()}
                         nameKey="year"
@@ -1675,13 +1731,13 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                   </div>
                 )}
 
-                {/* Pyrolysis Method Stacked Bar Chart */}
-                {analysisData.productTypeStackedData.chartData.length > 0 && analysisData.productTypeStackedData.segments.length > 0 && (
+                {/* End User Type Stacked Bar Chart */}
+                {analysisData.endUserTypeStackedData.chartData.length > 0 && analysisData.endUserTypeStackedData.segments.length > 0 && (
                   <div className={`p-5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[480px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
                     <div className="mb-3 pb-3 border-b border-gray-200 dark:border-navy-light">
-                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share by pyrolysis method by year\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Each stacked bar shows the proportion for that year\n• Hover over bars to see detailed values and percentages`}>
+                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share by end user type by year\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Each stacked bar shows the proportion for that year\n• Hover over bars to see detailed values and percentages`}>
                         <h3 className="text-base font-bold text-electric-blue dark:text-cyan-accent mb-1 cursor-help">
-                          Pyrolysis Method Share
+                          End User Type Share
                         </h3>
                       </InfoTooltip>
                       <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
@@ -1690,8 +1746,8 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                     </div>
                     <div className="flex-1 flex items-center justify-center min-h-0">
                       <CrossSegmentStackedBarChart
-                        data={analysisData.productTypeStackedData.chartData}
-                        dataKeys={analysisData.productTypeStackedData.segments}
+                        data={analysisData.endUserTypeStackedData.chartData}
+                        dataKeys={analysisData.endUserTypeStackedData.segments}
                         xAxisLabel="Year"
                         yAxisLabel={getDataLabel()}
                         nameKey="year"
@@ -1700,13 +1756,13 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                   </div>
                 )}
 
-                {/* Application Stacked Bar Chart */}
-                {analysisData.applicationStackedData.chartData.length > 0 && analysisData.applicationStackedData.segments.length > 0 && (
+                {/* Delivery Channel Stacked Bar Chart */}
+                {analysisData.deliveryChannelStackedData.chartData.length > 0 && analysisData.deliveryChannelStackedData.segments.length > 0 && (
                   <div className={`p-5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[480px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
                     <div className="mb-3 pb-3 border-b border-gray-200 dark:border-navy-light">
-                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share by form by year\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Each stacked bar shows the proportion for that year\n• Hover over bars to see detailed values and percentages`}>
+                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share by delivery channel by year\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Each stacked bar shows the proportion for that year\n• Hover over bars to see detailed values and percentages`}>
                         <h3 className="text-base font-bold text-electric-blue dark:text-cyan-accent mb-1 cursor-help">
-                          Form Share
+                          Delivery Channel Share
                         </h3>
                       </InfoTooltip>
                       <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
@@ -1715,8 +1771,8 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                     </div>
                     <div className="flex-1 flex items-center justify-center min-h-0">
                       <CrossSegmentStackedBarChart
-                        data={analysisData.applicationStackedData.chartData}
-                        dataKeys={analysisData.applicationStackedData.segments}
+                        data={analysisData.deliveryChannelStackedData.chartData}
+                        dataKeys={analysisData.deliveryChannelStackedData.segments}
                         xAxisLabel="Year"
                         yAxisLabel={getDataLabel()}
                         nameKey="year"
@@ -1725,13 +1781,13 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                   </div>
                 )}
 
-                {/* End User Stacked Bar Chart */}
-                {analysisData.endUserStackedData.chartData.length > 0 && analysisData.endUserStackedData.segments.length > 0 && (
+                {/* Business Model Stacked Bar Chart */}
+                {analysisData.businessModelStackedData.chartData.length > 0 && analysisData.businessModelStackedData.segments.length > 0 && (
                   <div className={`p-5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[480px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
                     <div className="mb-3 pb-3 border-b border-gray-200 dark:border-navy-light">
-                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share by application by year\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Each stacked bar shows the proportion for that year\n• Hover over bars to see detailed values and percentages`}>
+                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share by business model by year\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Each stacked bar shows the proportion for that year\n• Hover over bars to see detailed values and percentages`}>
                         <h3 className="text-base font-bold text-electric-blue dark:text-cyan-accent mb-1 cursor-help">
-                          Application Share
+                          Business Model Share
                         </h3>
                       </InfoTooltip>
                       <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
@@ -1740,83 +1796,8 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                     </div>
                     <div className="flex-1 flex items-center justify-center min-h-0">
                       <CrossSegmentStackedBarChart
-                        data={analysisData.endUserStackedData.chartData}
-                        dataKeys={analysisData.endUserStackedData.segments}
-                        xAxisLabel="Year"
-                        yAxisLabel={getDataLabel()}
-                        nameKey="year"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Distribution Channel Type Stacked Bar Chart */}
-                {analysisData.distributionChannelTypeStackedData.chartData.length > 0 && analysisData.distributionChannelTypeStackedData.segments.length > 0 && (
-                  <div className={`p-5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[480px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
-                    <div className="mb-3 pb-3 border-b border-gray-200 dark:border-navy-light">
-                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share by distribution channel type by year\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Each stacked bar shows the proportion for that year\n• Hover over bars to see detailed values and percentages`}>
-                        <h3 className="text-base font-bold text-electric-blue dark:text-cyan-accent mb-1 cursor-help">
-                          Distribution Channel Type Share
-                        </h3>
-                      </InfoTooltip>
-                      <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
-                        {getDataLabel()}
-                      </p>
-                    </div>
-                    <div className="flex-1 flex items-center justify-center min-h-0">
-                      <CrossSegmentStackedBarChart
-                        data={analysisData.distributionChannelTypeStackedData.chartData}
-                        dataKeys={analysisData.distributionChannelTypeStackedData.segments}
-                        xAxisLabel="Year"
-                        yAxisLabel={getDataLabel()}
-                        nameKey="year"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Offline Channel Subtype Stacked Bar Chart - Only show if Offline type is selected */}
-                {analysisData.offlineChannelStackedData.chartData.length > 0 && analysisData.offlineChannelStackedData.segments.length > 0 && (
-                  <div className={`p-5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[480px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
-                    <div className="mb-3 pb-3 border-b border-gray-200 dark:border-navy-light">
-                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share by offline distribution channel subtypes by year\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Each stacked bar shows the proportion for that year\n• Hover over bars to see detailed values and percentages`}>
-                        <h3 className="text-base font-bold text-electric-blue dark:text-cyan-accent mb-1 cursor-help">
-                          Offline Channel Share
-                        </h3>
-                      </InfoTooltip>
-                      <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
-                        {getDataLabel()}
-                      </p>
-                    </div>
-                    <div className="flex-1 flex items-center justify-center min-h-0">
-                      <CrossSegmentStackedBarChart
-                        data={analysisData.offlineChannelStackedData.chartData}
-                        dataKeys={analysisData.offlineChannelStackedData.segments}
-                        xAxisLabel="Year"
-                        yAxisLabel={getDataLabel()}
-                        nameKey="year"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Online Channel Subtype Stacked Bar Chart - Only show if Online type is selected */}
-                {analysisData.onlineChannelStackedData.chartData.length > 0 && analysisData.onlineChannelStackedData.segments.length > 0 && (
-                  <div className={`p-5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[480px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
-                    <div className="mb-3 pb-3 border-b border-gray-200 dark:border-navy-light">
-                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share by online distribution channel subtypes by year\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Each stacked bar shows the proportion for that year\n• Hover over bars to see detailed values and percentages`}>
-                        <h3 className="text-base font-bold text-electric-blue dark:text-cyan-accent mb-1 cursor-help">
-                          Online Channel Share
-                        </h3>
-                      </InfoTooltip>
-                      <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
-                        {getDataLabel()}
-                      </p>
-                    </div>
-                    <div className="flex-1 flex items-center justify-center min-h-0">
-                      <CrossSegmentStackedBarChart
-                        data={analysisData.onlineChannelStackedData.chartData}
-                        dataKeys={analysisData.onlineChannelStackedData.segments}
+                        data={analysisData.businessModelStackedData.chartData}
+                        dataKeys={analysisData.businessModelStackedData.segments}
                         xAxisLabel="Year"
                         yAxisLabel={getDataLabel()}
                         nameKey="year"
@@ -1828,42 +1809,7 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
             </div>
           )}
 
-          {/* Graph 6: Market Size by Country */}
-          {analysisData.countryChartData.length > 0 && analysisData.countries && analysisData.countries.length > 0 && (
-            <div className="mb-20">
-              <div className="mb-8">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className={`w-1 h-10 rounded-full ${isDark ? 'bg-cyan-accent' : 'bg-electric-blue'}`}></div>
-                  <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} by country grouped by year\n• X-axis: Year\n• Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Compare country performance across years`}>
-                    <h2 className="text-3xl font-bold text-text-primary-light dark:text-text-primary-dark cursor-help">
-                      {filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'} by Country by Year
-                    </h2>
-                  </InfoTooltip>
-                </div>
-                <p className="text-base text-text-secondary-light dark:text-text-secondary-dark ml-4 mb-2">
-                  Country-wise breakdown grouped by year
-                </p>
-              </div>
-              <div className={`p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[550px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
-                <div className="mb-4 pb-4 border-b border-gray-200 dark:border-navy-light">
-                  <h3 className="text-lg font-bold text-electric-blue dark:text-cyan-accent mb-1">
-                    {filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'} by Country by Year
-                  </h3>
-                  <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
-                    {getDataLabel()}
-                  </p>
-                </div>
-                <div className="flex-1 flex items-center justify-center min-h-0 pt-2">
-                  <SegmentGroupedBarChart
-                    data={analysisData.countryChartData}
-                    segmentKeys={analysisData.countries}
-                    xAxisLabel="Year"
-                    yAxisLabel={getDataLabel()}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
+
 
           {/* Graph 9: Region Country Percentage */}
           {analysisData.regionCountryPercentageChartData.length > 0 && (
@@ -1930,7 +1876,10 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                   <FilterDropdown
                     label="Region"
                     value={incrementalFilters.region}
-                    onChange={(value) => setIncrementalFilters({ ...incrementalFilters, region: value as string[] })}
+                    onChange={(value) => {
+                      // Clear country selection when region changes
+                      setIncrementalFilters({ region: value as string[], country: [] })
+                    }}
                     options={incrementalFilterOptions.regions}
                   />
                   <FilterDropdown
@@ -1979,8 +1928,8 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                     label="Region"
                     value={attractivenessFilters.region}
                     onChange={(value) => {
-                      const newRegions = value as string[]
-                      setAttractivenessFilters({ ...attractivenessFilters, region: newRegions, country: [] })
+                      // Clear country selection when region changes
+                      setAttractivenessFilters({ ...attractivenessFilters, region: value as string[], country: [] })
                     }}
                     options={attractivenessFilterOptions.regions}
                   />
@@ -1991,27 +1940,13 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                     options={attractivenessFilterOptions.countries}
                   />
                   <FilterDropdown
-                    label="Segment Type"
-                    value={attractivenessFilters.selectedCategory || ''}
+                    label="Segmentation"
+                    value={attractivenessFilters.segmentType || ''}
                     onChange={(value) => {
-                      setAttractivenessFilters({ ...attractivenessFilters, selectedCategory: value as string })
+                      // Clear selectedCategory when segment type changes
+                      setAttractivenessFilters({ ...attractivenessFilters, segmentType: value as string, selectedCategory: '' })
                     }}
-                    options={[
-                      'pyrolysisMethod',
-                      'sourceMaterial',
-                      'productGrade',
-                      'form',
-                      'application',
-                      'distributionChannel'
-                    ]}
-                    optionLabels={{
-                      'pyrolysisMethod': 'By Pyrolysis Method',
-                      'sourceMaterial': 'By Source Material',
-                      'productGrade': 'By Product Grade',
-                      'form': 'By Form',
-                      'application': 'By Application',
-                      'distributionChannel': 'By Distribution Channel'
-                    }}
+                    options={attractivenessFilterOptions.segmentTypes}
                     multiple={false}
                   />
                 </div>
@@ -2032,11 +1967,11 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                   </p>
                 </div>
 
-                {!attractivenessFilters.selectedCategory ? (
+                {!attractivenessFilters.segmentType ? (
                   <div className={`p-6 rounded-xl shadow-lg ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
                     <div className="flex items-center justify-center h-[400px]">
                       <p className="text-text-secondary-light dark:text-text-secondary-dark text-lg">
-                        Please select a product category above to view the market attractiveness chart
+                        Please select a segmentation type above to view the market attractiveness chart
                       </p>
                     </div>
                   </div>
@@ -2052,12 +1987,7 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                   <div className={`p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[600px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
                     <div className="mb-4 pb-4 border-b border-gray-200 dark:border-navy-light">
                       <h3 className="text-lg font-bold text-electric-blue dark:text-cyan-accent mb-1">
-                        {attractivenessFilters.selectedCategory === 'pyrolysisMethod' && 'By Pyrolysis Method'}
-                        {attractivenessFilters.selectedCategory === 'sourceMaterial' && 'By Source Material'}
-                        {attractivenessFilters.selectedCategory === 'productGrade' && 'By Product Grade'}
-                        {attractivenessFilters.selectedCategory === 'form' && 'By Form'}
-                        {attractivenessFilters.selectedCategory === 'application' && 'By Application'}
-                        {attractivenessFilters.selectedCategory === 'distributionChannel' && 'By Distribution Channel'}
+                        {attractivenessFilters.segmentType}
                       </h3>
                       <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
                         CAGR Index vs Market Share Index
@@ -2089,7 +2019,7 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                     </h3>
                   </div>
                   <p className="text-base text-text-secondary-light dark:text-text-secondary-dark ml-4">
-                    Filter Y-o-Y analysis data by region, product type, and country.
+                    Filter Y-o-Y analysis data by region, country, and segment type.
                   </p>
                 </div>
                 
@@ -2099,32 +2029,32 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                     value={yoyFilters.region}
                     onChange={(value) => {
                       const newRegions = value as string[]
-                      // Clear country selection when region changes and limit to one region to avoid clubbing
-                      const singleRegion = newRegions.length > 0 ? [newRegions[newRegions.length - 1]] : []
-                      setYoyFilters({ ...yoyFilters, region: singleRegion, country: [] })
+                      // Filter out countries that are not in the selected regions
+                      const validCountries = yoyFilters.country.filter(country => {
+                        if (newRegions.length === 0) return true // Keep all if no region selected
+                        // Check if country belongs to any selected region
+                        const regionCountryMap: Record<string, string[]> = {
+                          'North America': ['U.S.', 'Canada'],
+                          'Europe': ['U.K.', 'Germany', 'France', 'Italy', 'Spain', 'Russia', 'Rest of Europe']
+                        }
+                        return newRegions.some(region => regionCountryMap[region]?.includes(country))
+                      })
+                      setYoyFilters({ ...yoyFilters, region: newRegions, country: validCountries })
                     }}
                     options={yoyFilterOptions.regions}
                   />
                   <FilterDropdown
                     label="Country"
                     value={yoyFilters.country}
-                    onChange={(value) => {
-                      const newCountries = value as string[]
-                      // Clear region selection when country changes and limit to one country
-                      const singleCountry = newCountries.length > 0 ? [newCountries[newCountries.length - 1]] : []
-                      setYoyFilters({ ...yoyFilters, country: singleCountry, region: [] })
-                    }}
-                    options={yoyFilterOptions.countries}
-                    optionLabels={yoyFilterOptions.countryOptions.reduce((acc, opt) => {
-                      acc[opt.value] = opt.label
-                      return acc
-                    }, {} as Record<string, string>)}
+                    onChange={(value) => setYoyFilters({ ...yoyFilters, country: value as string[] })}
+                    options={[]}
+                    groupedOptions={yoyFilterOptions.countryGroupedOptions}
                   />
                   <FilterDropdown
-                    label="Product Type"
-                    value={yoyFilters.productType}
-                    onChange={(value) => setYoyFilters({ ...yoyFilters, productType: value as string[] })}
-                    options={yoyFilterOptions.productTypes}
+                    label="Segment Type"
+                    value={yoyFilters.segmentType}
+                    onChange={(value) => setYoyFilters({ ...yoyFilters, segmentType: value as string[] })}
+                    options={yoyFilterOptions.segmentCategories}
                   />
                 </div>
               </div>
@@ -2167,7 +2097,7 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                         <div className="flex-1 flex items-center justify-center min-h-0 pt-2">
                           <YoYCAGRChart
                             data={entity.data}
-                            productTypes={entity.productTypes}
+                            productTypes={entity.segmentTypes}
                             xAxisLabel="Year"
                             yAxisLabel="Growth Rate (%)"
                           />

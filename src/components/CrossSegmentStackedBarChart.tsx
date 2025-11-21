@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import React from 'react'
 import {
   BarChart as RechartsBarChart,
   Bar,
@@ -52,34 +52,46 @@ export function CrossSegmentStackedBarChart({
       const total = payload.reduce((sum: number, entry: any) => sum + (entry.value || 0), 0)
       
       return (
-        <div className={`p-4 rounded-lg border-2 shadow-lg ${
-          isDark 
-            ? 'bg-navy-card border-electric-blue text-white' 
-            : 'bg-white border-electric-blue text-gray-900'
-        }`}>
-          <p className="font-bold text-base mb-3">{xAxisLabel}: {label}</p>
-          <div className="space-y-1">
+        <div 
+          className={`p-3 rounded-lg border-2 shadow-xl ${
+            isDark 
+              ? 'bg-navy-card border-electric-blue text-white' 
+              : 'bg-white border-electric-blue text-gray-900'
+          }`}
+          style={{ 
+            minWidth: '250px',
+            maxWidth: '320px',
+            whiteSpace: 'normal',
+            wordWrap: 'break-word'
+          }}
+        >
+          <p className="font-bold text-sm mb-2 break-words">{xAxisLabel}: {label}</p>
+          <div className="space-y-1 max-h-48 overflow-y-auto">
             {payload
               .filter((entry: any) => entry.value > 0)
               .map((entry: any) => {
                 const percentage = total > 0 ? ((entry.value || 0) / total) * 100 : 0
                 return (
-                  <div key={entry.dataKey} className="flex items-center gap-2 text-sm">
+                  <div key={entry.dataKey} className="flex items-start gap-2 text-xs">
                     <div 
-                      className="w-3 h-3 rounded" 
+                      className="w-2.5 h-2.5 rounded flex-shrink-0 mt-0.5" 
                       style={{ backgroundColor: entry.color }}
                     />
-                    <span className="font-medium">{entry.name}:</span>
-                    <span className="font-bold">{formatWithCommas(entry.value, 2)}</span>
-                    <span className="text-xs opacity-75">({percentage.toFixed(1)}%)</span>
+                    <div className="flex-1 min-w-0">
+                      <span className="font-medium block break-words text-xs">{entry.name}:</span>
+                      <div className="flex items-baseline gap-1.5 mt-0.5 flex-wrap">
+                        <span className="font-bold text-xs">{formatWithCommas(entry.value, 2)}</span>
+                        <span className="text-[10px] opacity-75">({percentage.toFixed(1)}%)</span>
+                      </div>
+                    </div>
                   </div>
                 )
               })
             }
           </div>
-          <div className="mt-3 pt-3 border-t border-gray-400 flex items-center justify-between">
-            <span className="font-semibold text-base">Total:</span>
-            <span className="font-bold text-base">{formatWithCommas(total, 2)}</span>
+          <div className="mt-2 pt-2 border-t border-gray-400 flex items-center justify-between">
+            <span className="font-semibold text-xs">Total:</span>
+            <span className="font-bold text-xs">{formatWithCommas(total, 2)}</span>
           </div>
         </div>
       )
@@ -105,7 +117,7 @@ export function CrossSegmentStackedBarChart({
       <RechartsBarChart
         data={data}
         margin={{
-          top: 50,
+          top: 20,
           right: 40,
           left: 100,
           bottom: 80,
@@ -140,7 +152,7 @@ export function CrossSegmentStackedBarChart({
           width={90}
           tick={{ fill: isDark ? '#E2E8F0' : '#2D3748' }}
           tickMargin={15}
-          domain={[0, 'auto']}
+          domain={[0, (dataMax: number) => Math.ceil(dataMax * 1.1)]}
           allowDataOverflow={false}
           label={{
             value: yAxisLabel,
@@ -155,7 +167,12 @@ export function CrossSegmentStackedBarChart({
             }
           }}
         />
-        <Tooltip content={<CustomTooltip />} />
+        <Tooltip 
+          content={<CustomTooltip />}
+          wrapperStyle={{ zIndex: 1000, outline: 'none', pointerEvents: 'none' }}
+          allowEscapeViewBox={{ x: false, y: false }}
+          isAnimationActive={false}
+        />
         <Legend
           wrapperStyle={{
             color: isDark ? '#E2E8F0' : '#2D3748',

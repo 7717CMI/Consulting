@@ -3,6 +3,10 @@ interface ShovelMarketData {
   year: number
   region: string
   country: string
+  serviceType: string // By Service Type
+  endUserType: string // By End User
+  deliveryChannel: string // By Delivery Channel
+  businessModel: string // By Business Model
   productType: string // By Pyrolysis Method
   bladeMaterial: string // By Source Material
   handleLength: string // By Product Grade
@@ -27,7 +31,43 @@ const generateComprehensiveData = (): ShovelMarketData[] => {
   const years = Array.from({ length: 15 }, (_, i) => 2021 + i)
   const regions = ["North America", "Europe", "APAC", "Latin America", "Middle East", "Africa"]
   
-  // New Wood Vinegar Market filters
+  // New filter arrays
+  const serviceTypes = [
+    "Personal Branding & Executive Consulting",
+    "Digital Presence & Branding Consulting",
+    "Transition & Career Image Coaching",
+    "Corporate & Institutional Image Training",
+    "Educational & Scalable Branding Programs",
+    "Public Figure & Media Image Consulting",
+    "Others (Communication & Presence Coaching, etc.)"
+  ]
+  
+  const endUserTypes = [
+    "Senior Executives & Professionals",
+    "Transitioning Military Personnel",
+    "Youth & Students (High School / College)",
+    "Public Figures",
+    "Government Officials",
+    "Corporate Teams (HR, Sales, Leadership)",
+    "Everyday Professionals (Emerging Workforce)"
+  ]
+  
+  const deliveryChannels = [
+    "In-Person Consulting",
+    "Virtual / Online Consulting",
+    "Hybrid Engagement"
+  ]
+  
+  const businessModels = [
+    "Premium One-on-One Consulting",
+    "Subscription-Based Digital Coaching",
+    "Corporate Contracts / Retainers",
+    "Online Course / Self-paced Learning",
+    "Hybrid Workshop + eLearning",
+    "Licensing / Affiliate Programs"
+  ]
+  
+  // Old Wood Vinegar Market filters (keeping for compatibility)
   const productTypes = ["Slow Pyrolysis", "Fast Pyrolysis", "Intermediate Pyrolysis", "Dry Distillation"]
   const bladeMaterials = ["Hardwood", "Softwood", "Bamboo", "Coconut Shell / Palm Waste", "Fruitwood", "Others (Sawdust, Crop Residue, Mixed Biomass)"]
   const handleLengths = ["Agricultural Grade", "Industrial Grade", "Pharmaceutical / Food Grade"]
@@ -163,35 +203,39 @@ const generateComprehensiveData = (): ShovelMarketData[] => {
       const countries = countryMap[region] || []
       
       for (const country of countries) {
-        for (const productType of productTypes) {
-          const productMult = productTypeMultipliers[productType]
-          
-          for (const bladeMaterial of bladeMaterials) {
-            const bladeMult = bladeMaterialMultipliers[bladeMaterial]
-            
-            for (const handleLength of handleLengths) {
-              // Handle length multiplier
-              const handleMult = handleLength === 'Long Handle' ? 1.1 : handleLength === 'Short Handle' ? 0.9 : 1.0
-              
-              for (const application of applications) {
+        for (const serviceType of serviceTypes) {
+          for (const endUserType of endUserTypes) {
+            for (const deliveryChannel of deliveryChannels) {
+              for (const businessModel of businessModels) {
+                // Sample only one combination from old filters to reduce data size
+                const productType = productTypes[Math.floor(seededRandom() * productTypes.length)]
+                const productMult = productTypeMultipliers[productType]
+                
+                const bladeMaterial = bladeMaterials[Math.floor(seededRandom() * bladeMaterials.length)]
+                const bladeMult = bladeMaterialMultipliers[bladeMaterial]
+                
+                const handleLength = handleLengths[Math.floor(seededRandom() * handleLengths.length)]
+                const handleMult = handleLength === 'Long Handle' ? 1.1 : handleLength === 'Short Handle' ? 0.9 : 1.0
+                
+                const application = applications[Math.floor(seededRandom() * applications.length)]
                 const appMult = applicationMultipliers[application]
                 
-                for (const endUser of endUsers) {
-                  const userMult = endUserMultipliers[endUser]
-                  
-                  // Determine distribution channel type (now Direct/Indirect)
-                  const isDirect = seededRandom() > 0.5 // 50% direct, 50% indirect
-                  const distributionChannelType = isDirect ? 'Direct' : 'Indirect (Via Distributors)'
+                const endUser = endUsers[Math.floor(seededRandom() * endUsers.length)]
+                const userMult = endUserMultipliers[endUser]
+                
+                // Determine distribution channel type (now Direct/Indirect)
+                const isDirect = seededRandom() > 0.5 // 50% direct, 50% indirect
+                const distributionChannelType = isDirect ? 'Direct' : 'Indirect (Via Distributors)'
 
-                  // Get application subtype based on the endUser (application category)
-                  const subtypes = applicationSubtypes[endUser] || []
-                  const distributionChannel = subtypes.length > 0
-                    ? subtypes[Math.floor(seededRandom() * subtypes.length)]
-                    : endUser // fallback to category if no subtypes
-                  
-                  const brand = brands[Math.floor(seededRandom() * brands.length)]
-                  const brandMult = brandPremiumMap[brand] || 1.0
-                  const company = companies[Math.floor(seededRandom() * companies.length)]
+                // Get application subtype based on the endUser (application category)
+                const subtypes = applicationSubtypes[endUser] || []
+                const distributionChannel = subtypes.length > 0
+                  ? subtypes[Math.floor(seededRandom() * subtypes.length)]
+                  : endUser // fallback to category if no subtypes
+                
+                const brand = brands[Math.floor(seededRandom() * brands.length)]
+                const brandMult = brandPremiumMap[brand] || 1.0
+                const company = companies[Math.floor(seededRandom() * companies.length)]
                   
                   // Apply all multipliers for variation
                   const basePrice = 10 + seededRandom() * 90 // $10-$100
@@ -220,33 +264,36 @@ const generateComprehensiveData = (): ShovelMarketData[] => {
                   const yoyGrowth = -5 + seededRandom() * 20
                   const qty = Math.floor(volumeUnits * (0.8 + seededRandom() * 0.4))
                   
-                  data.push({
-                    recordId,
-                    year,
-                    region,
-                    country,
-                    productType,
-                    bladeMaterial,
-                    handleLength,
-                    application,
-                    endUser,
-                    distributionChannelType,
-                    distributionChannel,
-                    brand,
-                    company,
-                    price: Math.round(price * 100) / 100,
-                    volumeUnits,
-                    qty,
-                    revenue: Math.round(revenue * 100) / 100,
-                    marketValueUsd: Math.round(marketValueUsd * 100) / 100,
-                    value: Math.round(marketValueUsd * 100) / 100,
-                    marketSharePct: Math.round(marketSharePct * 100) / 100,
-                    cagr: Math.round(cagr * 100) / 100,
-                    yoyGrowth: Math.round(yoyGrowth * 100) / 100,
-                  })
-                  
-                  recordId++
-                }
+                data.push({
+                  recordId,
+                  year,
+                  region,
+                  country,
+                  serviceType,
+                  endUserType,
+                  deliveryChannel,
+                  businessModel,
+                  productType,
+                  bladeMaterial,
+                  handleLength,
+                  application,
+                  endUser,
+                  distributionChannelType,
+                  distributionChannel,
+                  brand,
+                  company,
+                  price: Math.round(price * 100) / 100,
+                  volumeUnits,
+                  qty,
+                  revenue: Math.round(revenue * 100) / 100,
+                  marketValueUsd: Math.round(marketValueUsd * 100) / 100,
+                  value: Math.round(marketValueUsd * 100) / 100,
+                  marketSharePct: Math.round(marketSharePct * 100) / 100,
+                  cagr: Math.round(cagr * 100) / 100,
+                  yoyGrowth: Math.round(yoyGrowth * 100) / 100,
+                })
+                
+                recordId++
               }
             }
           }

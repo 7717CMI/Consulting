@@ -139,7 +139,7 @@ export function FilterDropdown({ label, value, onChange, options, multiple = tru
             : 'bg-white border-gray-300 text-text-primary-light hover:border-electric-blue'
         } focus:outline-none focus:ring-2 focus:ring-electric-blue transition-all`}
       >
-        <span className="truncate flex-1 mr-2">
+        <span className="flex-1 mr-2 break-words whitespace-normal text-left">
           {getDisplayText()}
         </span>
         <div className="flex items-center gap-1 flex-shrink-0">
@@ -234,7 +234,7 @@ export function FilterDropdown({ label, value, onChange, options, multiple = tru
                             )}
                           </div>
                         )}
-                        <span className="flex-1 truncate">{getOptionLabel(option)}</span>
+                        <span className="flex-1 break-words whitespace-normal">{getOptionLabel(option)}</span>
                         {!multiple && isSelected && (
                           <Check size={16} className="text-electric-blue flex-shrink-0" />
                         )}
@@ -276,7 +276,7 @@ export function FilterDropdown({ label, value, onChange, options, multiple = tru
                         )}
                       </div>
                     )}
-                    <span className="flex-1 truncate">{getOptionLabel(option)}</span>
+                    <span className="flex-1 break-words whitespace-normal">{getOptionLabel(option)}</span>
                     {!multiple && isSelected && (
                       <Check size={16} className="text-electric-blue flex-shrink-0" />
                     )}
