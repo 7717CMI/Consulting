@@ -23,6 +23,13 @@ export function Home({ onNavigate }: HomeProps) {
       id: "MarketAnalysis",
       gradient: "#0075FF",
     },
+    {
+      title: "Customer Intelligence",
+      description: "Analyze customer behavior, demographics, and insights on image consulting needs",
+      icon: Users,
+      id: "CustomerIntelligence",
+      gradient: "#4FD1C5",
+    },
   ]
 
   const containerVariants = {
